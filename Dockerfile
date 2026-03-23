@@ -5,6 +5,7 @@ RUN apk add --no-cache \
     nginx \
     supervisor \
     curl \
+    gettext \
     libzip-dev \
     oniguruma-dev \
     icu-dev \
