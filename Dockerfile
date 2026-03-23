@@ -9,6 +9,7 @@ RUN apk add --no-cache \
     libzip-dev \
     oniguruma-dev \
     icu-dev \
+    argon2-libs \
     && docker-php-ext-install \
     pdo_mysql \
     mbstring \
