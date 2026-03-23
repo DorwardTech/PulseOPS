@@ -1,0 +1,317 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Job #{{ job.id }}{% endblock %}
+{% block page_title %}Job #{{ job.id }}: {{ job.title }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <span class="badge" style="background-color: {{ job.status_color|default('#6c757d') }}">{{ job.status_name }}</span>
+        {% if job.priority == 'low' %}
+            <span class="badge bg-info">Low Priority</span>
+        {% elseif job.priority == 'normal' %}
+            <span class="badge bg-primary">Normal Priority</span>
+        {% elseif job.priority == 'high' %}
+            <span class="badge bg-warning">High Priority</span>
+        {% elseif job.priority == 'urgent' %}
+            <span class="badge bg-danger">Urgent Priority</span>
+        {% endif %}
+    </div>
+    <div>
+        <a href="/jobs/{{ job.id }}/edit" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-pencil me-1"></i> Edit
+        </a>
+        <a href="/jobs" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back
+        </a>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs" id="jobTabs" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">Details</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab">
+            Notes <span class="badge bg-secondary ms-1">{{ job.notes|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" id="parts-tab" data-bs-toggle="tab" data-bs-target="#parts" type="button" role="tab">
+            Parts <span class="badge bg-secondary ms-1">{{ job.parts|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" id="photos-tab" data-bs-toggle="tab" data-bs-target="#photos" type="button" role="tab">
+            Photos <span class="badge bg-secondary ms-1">{{ job.photos|length }}</span>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content mt-3" id="jobTabsContent">
+    <!-- Details Tab -->
+    <div class="tab-pane fade show active" id="details" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">Job Information</h6>
+                        <table class="table table-borderless mb-0">
+                            <tr>
+                                <td class="text-muted" style="width: 180px;">Title</td>
+                                <td><strong>{{ job.title }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Machine</td>
+                                <td>
+                                    {% if job.machine %}
+                                        <a href="/machines/{{ job.machine.id }}">{{ job.machine.name }}</a>
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Status</td>
+                                <td><span class="badge" style="background-color: {{ job.status_color|default('#6c757d') }}">{{ job.status_name }}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Priority</td>
+                                <td>
+                                    {% if job.priority == 'low' %}
+                                        <span class="badge bg-info">Low</span>
+                                    {% elseif job.priority == 'normal' %}
+                                        <span class="badge bg-primary">Normal</span>
+                                    {% elseif job.priority == 'high' %}
+                                        <span class="badge bg-warning">High</span>
+                                    {% elseif job.priority == 'urgent' %}
+                                        <span class="badge bg-danger">Urgent</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Job Type</td>
+                                <td>{{ job.job_type|capitalize }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Scheduled Date</td>
+                                <td>{{ job.scheduled_date ? format_date(job.scheduled_date) : '--' }}{{ job.scheduled_time ? ' at ' ~ job.scheduled_time : '' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Assigned To</td>
+                                <td>{{ job.assigned_user.full_name|default('Unassigned') }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                {% if job.description %}
+                <div class="card border-0 shadow-sm mt-3">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-2">Description</h6>
+                        <p class="mb-0">{{ job.description|nl2br }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if job.resolution %}
+                <div class="card border-0 shadow-sm mt-3">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-2">Resolution</h6>
+                        <p class="mb-0">{{ job.resolution|nl2br }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">Costs</h6>
+                        <table class="table table-borderless mb-0">
+                            <tr>
+                                <td class="text-muted">Labour Time</td>
+                                <td class="text-end">{{ job.labour_minutes|default(0) }} mins</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Labour Rate</td>
+                                <td class="text-end">{{ format_currency(job.labour_rate) }}/hr</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Labour Cost</td>
+                                <td class="text-end">{{ format_currency(job.labour_cost) }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Parts Cost</td>
+                                <td class="text-end">{{ format_currency(job.parts_cost) }}</td>
+                            </tr>
+                            <tr class="border-top">
+                                <td class="fw-bold">Total Cost</td>
+                                <td class="text-end fw-bold">{{ format_currency(job.total_cost) }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes Tab -->
+    <div class="tab-pane fade" id="notes" role="tabpanel">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                {% for note in job.notes %}
+                <div class="d-flex gap-3 mb-3 pb-3 {{ not loop.last ? 'border-bottom' : '' }}">
+                    <div class="flex-shrink-0">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                            <i class="bi bi-person"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ note.user_name|default('System') }}</strong>
+                            <small class="text-muted">{{ format_date(note.created_at) }}</small>
+                        </div>
+                        <p class="mb-0 mt-1">{{ note.content|nl2br }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-center text-muted py-3">No notes yet.</p>
+                {% endfor %}
+            </div>
+            <div class="card-footer bg-white">
+                <form method="POST" action="/jobs/{{ job.id }}/notes">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-2">
+                        <textarea class="form-control" name="content" rows="3" placeholder="Add a note..." required></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-lg me-1"></i> Add Note
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parts Tab -->
+    <div class="tab-pane fade" id="parts" role="tabpanel">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Part Name</th>
+                                <th>Part Number</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-end">Unit Cost</th>
+                                <th class="text-end">Total</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for part in job.parts %}
+                            <tr>
+                                <td>{{ part.part_name }}</td>
+                                <td>{{ part.part_number|default('--') }}</td>
+                                <td class="text-center">{{ part.quantity }}</td>
+                                <td class="text-end">{{ format_currency(part.unit_cost) }}</td>
+                                <td class="text-end fw-medium">{{ format_currency(part.total_cost) }}</td>
+                                <td class="text-end">
+                                    <form method="POST" action="/jobs/{{ job.id }}/parts/{{ part.id }}/delete" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this part?')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-3">No parts added.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white">
+                <form method="POST" action="/jobs/{{ job.id }}/parts" class="row g-2 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="col-md-3">
+                        <label class="form-label small">Part Name</label>
+                        <input type="text" name="part_name" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Part Number</label>
+                        <input type="text" name="part_number" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Quantity</label>
+                        <input type="number" name="quantity" class="form-control form-control-sm" value="1" min="1" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Unit Cost ($)</label>
+                        <input type="number" name="unit_cost" step="0.01" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">
+                            <i class="bi bi-plus me-1"></i> Add Part
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photos Tab -->
+    <div class="tab-pane fade" id="photos" role="tabpanel">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for photo in job.photos %}
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <div class="position-relative">
+                            <img src="{{ photo.url }}" alt="{{ photo.caption|default('Job photo') }}" class="img-fluid rounded shadow-sm" style="width:100%;height:200px;object-fit:cover;">
+                            <form method="POST" action="/jobs/{{ job.id }}/photos/{{ photo.id }}/delete" class="position-absolute top-0 end-0 m-1">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this photo?')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% if photo.caption %}
+                                <div class="mt-1 small text-muted">{{ photo.caption }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-12 text-center text-muted py-4">
+                        <i class="bi bi-image fs-1 d-block mb-2"></i>
+                        No photos uploaded.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer bg-white">
+                <form method="POST" action="/jobs/{{ job.id }}/photos" enctype="multipart/form-data" class="row g-2 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="col-md-6">
+                        <label class="form-label small">Photo</label>
+                        <input type="file" name="photo" class="form-control form-control-sm" accept="image/*" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Caption</label>
+                        <input type="text" name="caption" class="form-control form-control-sm" placeholder="Optional caption">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">
+                            <i class="bi bi-upload me-1"></i> Upload
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

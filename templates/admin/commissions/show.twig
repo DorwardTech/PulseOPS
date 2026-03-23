@@ -1,0 +1,259 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Commission Detail{% endblock %}
+{% block page_title %}Commission Detail{% endblock %}
+
+{% block head %}
+<style>
+    .commission-breakdown { list-style: none; padding: 0; margin: 0; }
+    .commission-breakdown li {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+        font-size: 0.95rem;
+    }
+    .commission-breakdown li:last-child { border-bottom: none; }
+    .commission-breakdown .deduction { color: #dc3545; }
+    .commission-breakdown .total {
+        font-weight: 700;
+        font-size: 1.05rem;
+        border-top: 2px solid #333;
+        padding-top: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h4 class="mb-1">
+            {{ commission.period_label|default(format_date(commission.period_start) ~ ' - ' ~ format_date(commission.period_end)) }}
+        </h4>
+        <p class="text-muted mb-1">{{ commission.customer.name }}</p>
+        {% if commission.status == 'draft' %}
+            <span class="badge bg-secondary fs-6">Draft</span>
+        {% elseif commission.status == 'approved' %}
+            <span class="badge bg-primary fs-6">Approved</span>
+        {% elseif commission.status == 'paid' %}
+            <span class="badge bg-success fs-6">Paid</span>
+        {% elseif commission.status == 'void' %}
+            <span class="badge bg-danger fs-6">Void</span>
+        {% endif %}
+    </div>
+    <div class="text-end">
+        <div class="text-muted small">Commission Amount</div>
+        <div class="fs-2 fw-bold text-primary">{{ format_currency(commission.commission_amount) }}</div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Commission Breakdown -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0"><i class="bi bi-calculator me-2"></i>Commission Breakdown</h6>
+            </div>
+            <div class="card-body">
+                <ul class="commission-breakdown">
+                    <li>
+                        <span>Gross Revenue (Cash + Card)</span>
+                        <span>{{ format_currency(commission.gross_revenue) }}</span>
+                    </li>
+                    <li class="deduction">
+                        <span>Transaction Fees ({{ commission.transaction_count|default(0) }} txns &times; {{ format_currency(commission.processing_fee_per_txn) }})</span>
+                        <span>-{{ format_currency(commission.transaction_fees) }}</span>
+                    </li>
+                    <li class="deduction">
+                        <span>Parts Deduction (Parts &times; {{ commission.parts_rate|default(100) }}%)</span>
+                        <span>-{{ format_currency(commission.parts_deduction) }}</span>
+                    </li>
+                    <li class="deduction">
+                        <span>Labour Deduction (Labour &times; {{ commission.labour_rate|default(100) }}%)</span>
+                        <span>-{{ format_currency(commission.labour_deduction) }}</span>
+                    </li>
+                    <li class="total">
+                        <span>Net Revenue</span>
+                        <span>{{ format_currency(commission.net_revenue) }}</span>
+                    </li>
+                    <li>
+                        <span>Commission (Net &times; {{ commission.commission_rate }}%)</span>
+                        <span>{{ format_currency(commission.commission_calculated_base) }}</span>
+                    </li>
+                    <li>
+                        <span>Adjustments</span>
+                        <span>{{ commission.adjustments >= 0 ? '+' : '' }}{{ format_currency(commission.adjustments) }}</span>
+                    </li>
+                    <li>
+                        <span>Carry Forward In</span>
+                        <span>{{ format_currency(commission.carry_forward_in) }}</span>
+                    </li>
+                    <li>
+                        <span>Commission Calculated</span>
+                        <span>{{ format_currency(commission.commission_calculated) }}</span>
+                    </li>
+                    <li class="total">
+                        <span>Commission Amount</span>
+                        <span>{{ format_currency(commission.commission_amount) }}</span>
+                    </li>
+                    <li>
+                        <span>Carry Forward Out</span>
+                        <span>{{ format_currency(commission.carry_forward_out) }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Prepaid Usage -->
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0"><i class="bi bi-wallet2 me-2"></i>Prepaid Usage</h6>
+            </div>
+            <div class="card-body">
+                <div class="fs-4 fw-bold">{{ format_currency(commission.prepaid_amount) }}</div>
+                <p class="text-muted small mb-0">Tracked separately, managed by operator.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions & Line Items -->
+    <div class="col-lg-6">
+        <!-- Action Buttons -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0"><i class="bi bi-lightning me-2"></i>Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    {% if commission.status == 'draft' %}
+                        <form method="POST" action="/commissions/{{ commission.id }}/approve" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-primary" onclick="return confirm('Approve this commission?')">
+                                <i class="bi bi-check-circle me-1"></i> Approve
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if commission.status == 'approved' %}
+                        <form method="POST" action="/commissions/{{ commission.id }}/pay" class="d-inline" id="payForm">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <div class="d-flex gap-2 align-items-end flex-wrap">
+                                <div>
+                                    <label class="form-label small mb-1">Payment Method</label>
+                                    <select name="payment_method" class="form-select form-select-sm" required>
+                                        <option value="">Select...</option>
+                                        <option value="bank_transfer">Bank Transfer</option>
+                                        <option value="cheque">Cheque</option>
+                                        <option value="cash">Cash</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label small mb-1">Reference</label>
+                                    <input type="text" name="payment_reference" class="form-control form-control-sm" placeholder="Reference #">
+                                </div>
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="bi bi-check2-all me-1"></i> Mark Paid
+                                </button>
+                            </div>
+                        </form>
+                    {% endif %}
+
+                    {% if commission.status != 'void' %}
+                        <form method="POST" action="/commissions/{{ commission.id }}/void" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Void this commission? This cannot be undone.')">
+                                <i class="bi bi-x-circle me-1"></i> Void
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    <form method="POST" action="/commissions/{{ commission.id }}/recalculate" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-outline-secondary" onclick="return confirm('Recalculate this commission?')">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Recalculate
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Line Items -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>Line Items / Adjustments</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th class="text-end">Amount</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in commission.line_items %}
+                            <tr>
+                                <td><span class="badge bg-secondary">{{ item.type }}</span></td>
+                                <td>{{ item.description }}</td>
+                                <td class="text-end">{{ format_currency(item.amount) }}</td>
+                                <td class="text-end">
+                                    <form method="POST" action="/commissions/{{ commission.id }}/line-items/{{ item.id }}/delete" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this line item?')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-3">No line items.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if commission.status == 'draft' %}
+            <div class="card-footer bg-white">
+                <form method="POST" action="/commissions/{{ commission.id }}/line-items" class="row g-2 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="col-md-3">
+                        <label class="form-label small">Type</label>
+                        <select name="type" class="form-select form-select-sm" required>
+                            <option value="adjustment">Adjustment</option>
+                            <option value="deduction">Deduction</option>
+                            <option value="bonus">Bonus</option>
+                            <option value="carry_forward">Carry Forward</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small">Description</label>
+                        <input type="text" name="description" class="form-control form-control-sm" required placeholder="Description">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Amount</label>
+                        <input type="number" name="amount" step="0.01" class="form-control form-control-sm" required placeholder="0.00">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">
+                            <i class="bi bi-plus"></i> Add
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="/commissions" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Commissions
+    </a>
+</div>
+{% endblock %}

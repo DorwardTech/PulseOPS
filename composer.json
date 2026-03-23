@@ -1,0 +1,24 @@
+{
+    "name": "ntamusements/pulseops",
+    "description": "PulseOPS V3 - Amusement Operations Management System",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.4",
+        "slim/slim": "^4.14",
+        "slim/psr7": "^1.7",
+        "slim/twig-view": "^3.4",
+        "php-di/php-di": "^7.0",
+        "php-di/slim-bridge": "^3.4",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

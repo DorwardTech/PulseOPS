@@ -1,0 +1,150 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Jobs{% endblock %}
+{% block page_title %}Jobs{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div></div>
+    <a href="/jobs/create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Create Job
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="/jobs" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status_id" class="form-select">
+                    <option value="">All Statuses</option>
+                    {% for status in job_statuses %}
+                        <option value="{{ status.id }}" {{ filters.status_id == status.id ? 'selected' }}>{{ status.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Machine</label>
+                <select name="machine_id" class="form-select">
+                    <option value="">All Machines</option>
+                    {% for machine in machines %}
+                        <option value="{{ machine.id }}" {{ filters.machine_id == machine.id ? 'selected' }}>{{ machine.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Priority</label>
+                <select name="priority" class="form-select">
+                    <option value="">All Priorities</option>
+                    <option value="low" {{ filters.priority == 'low' ? 'selected' }}>Low</option>
+                    <option value="normal" {{ filters.priority == 'normal' ? 'selected' }}>Normal</option>
+                    <option value="high" {{ filters.priority == 'high' ? 'selected' }}>High</option>
+                    <option value="urgent" {{ filters.priority == 'urgent' ? 'selected' }}>Urgent</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Assigned To</label>
+                <select name="assigned_to" class="form-select">
+                    <option value="">All Users</option>
+                    {% for user in users %}
+                        <option value="{{ user.id }}" {{ filters.assigned_to == user.id ? 'selected' }}>{{ user.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Jobs Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Job #</th>
+                        <th>Title</th>
+                        <th>Machine</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Assigned</th>
+                        <th>Scheduled</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in jobs %}
+                    <tr>
+                        <td><strong>#{{ job.id }}</strong></td>
+                        <td>
+                            <a href="/jobs/{{ job.id }}" class="text-decoration-none">{{ job.title }}</a>
+                        </td>
+                        <td>
+                            {% if job.machine %}
+                                <a href="/machines/{{ job.machine.id }}">{{ job.machine.name }}</a>
+                            {% else %}
+                                --
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if job.priority == 'low' %}
+                                <span class="badge bg-info">Low</span>
+                            {% elseif job.priority == 'normal' %}
+                                <span class="badge bg-primary">Normal</span>
+                            {% elseif job.priority == 'high' %}
+                                <span class="badge bg-warning">High</span>
+                            {% elseif job.priority == 'urgent' %}
+                                <span class="badge bg-danger">Urgent</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge" style="background-color: {{ job.status_color|default('#6c757d') }}">{{ job.status_name }}</span>
+                        </td>
+                        <td>{{ job.assigned_user.full_name|default('Unassigned') }}</td>
+                        <td>{{ job.scheduled_date ? format_date(job.scheduled_date) : '--' }}</td>
+                        <td class="text-end">
+                            <a href="/jobs/{{ job.id }}" class="btn btn-sm btn-outline-primary" title="View">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="/jobs/{{ job.id }}/edit" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">No jobs found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if pagination and pagination.total_pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ pagination.current_page <= 1 ? 'disabled' }}">
+            <a class="page-link" href="?page={{ pagination.current_page - 1 }}{{ filters.status_id ? '&status_id=' ~ filters.status_id }}{{ filters.machine_id ? '&machine_id=' ~ filters.machine_id }}{{ filters.priority ? '&priority=' ~ filters.priority }}{{ filters.assigned_to ? '&assigned_to=' ~ filters.assigned_to }}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% for page in 1..pagination.total_pages %}
+        <li class="page-item {{ pagination.current_page == page ? 'active' }}">
+            <a class="page-link" href="?page={{ page }}{{ filters.status_id ? '&status_id=' ~ filters.status_id }}{{ filters.machine_id ? '&machine_id=' ~ filters.machine_id }}{{ filters.priority ? '&priority=' ~ filters.priority }}{{ filters.assigned_to ? '&assigned_to=' ~ filters.assigned_to }}">{{ page }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item {{ pagination.current_page >= pagination.total_pages ? 'disabled' }}">
+            <a class="page-link" href="?page={{ pagination.current_page + 1 }}{{ filters.status_id ? '&status_id=' ~ filters.status_id }}{{ filters.machine_id ? '&machine_id=' ~ filters.machine_id }}{{ filters.priority ? '&priority=' ~ filters.priority }}{{ filters.assigned_to ? '&assigned_to=' ~ filters.assigned_to }}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

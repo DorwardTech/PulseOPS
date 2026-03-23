@@ -1,0 +1,214 @@
+{% extends "layouts/admin.twig" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-joystick"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Active Machines</div>
+                    <div class="fs-4 fw-bold">{{ stats.total_machines }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-building"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Customers</div>
+                    <div class="fs-4 fw-bold">{{ stats.total_customers }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Revenue (This Month)</div>
+                    <div class="fs-4 fw-bold">{{ format_currency(stats.month_revenue) }}</div>
+                    {% if stats.revenue_change != 0 %}
+                    <small class="{{ stats.revenue_change > 0 ? 'text-success' : 'text-danger' }}">
+                        <i class="bi bi-{{ stats.revenue_change > 0 ? 'arrow-up' : 'arrow-down' }}"></i>
+                        {{ stats.revenue_change }}%
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-tools"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Open Jobs</div>
+                    <div class="fs-4 fw-bold">{{ stats.open_jobs }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Revenue Chart -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Revenue Trend (Last 6 Months)</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueChart" height="260"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Machines -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0">Top Machines (30 Days)</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for machine in top_machines %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-medium">{{ machine.name }}</div>
+                            <small class="text-muted">{{ machine.customer_name }}</small>
+                        </div>
+                        <span class="badge bg-success rounded-pill">{{ format_currency(machine.total_revenue) }}</span>
+                    </div>
+                    {% else %}
+                    <div class="list-group-item text-muted text-center py-4">No revenue data yet</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
+    <!-- Recent Revenue -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Recent Revenue</h6>
+                <a href="/revenue" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Machine</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rev in recent_revenue %}
+                            <tr>
+                                <td>{{ format_date(rev.collection_date) }}</td>
+                                <td>{{ rev.machine_name }}</td>
+                                <td class="text-end fw-medium">{{ format_currency(rev.cash_amount + rev.card_amount) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted py-3">No recent revenue</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Jobs -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Recent Jobs</h6>
+                <a href="/jobs" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Job</th>
+                                <th>Machine</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in recent_jobs %}
+                            <tr>
+                                <td>
+                                    <a href="/jobs/{{ job.id }}" class="text-decoration-none">{{ job.title }}</a>
+                                </td>
+                                <td>{{ job.machine_name }}</td>
+                                <td>
+                                    <span class="badge" style="background-color: {{ job.status_color }}">{{ job.status_name }}</span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted py-3">No recent jobs</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+    const ctx = document.getElementById('revenueChart');
+    if (ctx) {
+        const chartData = {{ revenue_chart|json_encode|raw }};
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartData.labels || [],
+                datasets: [{
+                    label: 'Cash',
+                    data: chartData.cash || [],
+                    backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                }, {
+                    label: 'Card',
+                    data: chartData.card || [],
+                    backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true, beginAtZero: true, ticks: { callback: v => '$' + v.toLocaleString() } }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

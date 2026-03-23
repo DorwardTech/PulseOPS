@@ -1,0 +1,178 @@
+{% extends "layouts/portal.twig" %}
+
+{% block title %}Commission - {{ commission.period_label }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/portal/commissions" class="text-decoration-none">Commissions</a></li>
+        <li class="breadcrumb-item active">{{ commission.period_label }}</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <!-- Commission Breakdown -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Commission Breakdown</h5>
+                {% if commission.status == 'draft' %}
+                    <span class="badge bg-secondary">Draft</span>
+                {% elseif commission.status == 'approved' %}
+                    <span class="badge bg-primary">Approved</span>
+                {% elseif commission.status == 'paid' %}
+                    <span class="badge bg-success">Paid</span>
+                {% elseif commission.status == 'void' %}
+                    <span class="badge bg-danger">Void</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ commission.status|capitalize }}</span>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <th class="text-muted ps-3">Period</th>
+                            <td class="text-end pe-3">{{ commission.period_label }}</td>
+                        </tr>
+                        <tr class="table-light">
+                            <th class="ps-3">Gross Revenue (Cash + Card)</th>
+                            <td class="text-end pe-3 fw-medium">{{ format_currency(commission.gross_revenue) }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted ps-3"><i class="bi bi-dash me-1"></i>Transaction Fees</th>
+                            <td class="text-end pe-3 text-danger">- {{ format_currency(commission.transaction_fees) }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted ps-3"><i class="bi bi-dash me-1"></i>Parts Deduction</th>
+                            <td class="text-end pe-3 text-danger">- {{ format_currency(commission.parts_deduction) }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted ps-3"><i class="bi bi-dash me-1"></i>Labour Deduction</th>
+                            <td class="text-end pe-3 text-danger">- {{ format_currency(commission.labour_deduction) }}</td>
+                        </tr>
+                        <tr class="table-light">
+                            <th class="ps-3">Net Revenue</th>
+                            <td class="text-end pe-3 fw-medium">{{ format_currency(commission.net_revenue) }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted ps-3">Commission Rate</th>
+                            <td class="text-end pe-3">{{ commission.commission_rate }}%</td>
+                        </tr>
+                        <tr class="table-success">
+                            <th class="ps-3 fs-5">Commission Amount</th>
+                            <td class="text-end pe-3 fw-bold fs-5">{{ format_currency(commission.commission_amount) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2"><hr class="my-0"></td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted ps-3">Prepaid (tracked separately)</th>
+                            <td class="text-end pe-3 text-muted">{{ format_currency(commission.prepaid_amount) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Info -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0">Payment Information</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <th class="text-muted" style="width: 140px;">Status</th>
+                            <td>
+                                {% if commission.status == 'draft' %}
+                                    <span class="badge bg-secondary">Draft</span>
+                                {% elseif commission.status == 'approved' %}
+                                    <span class="badge bg-primary">Approved</span>
+                                {% elseif commission.status == 'paid' %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% elseif commission.status == 'void' %}
+                                    <span class="badge bg-danger">Void</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if commission.paid_at %}
+                        <tr>
+                            <th class="text-muted">Paid Date</th>
+                            <td>{{ format_date(commission.paid_at) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if commission.payment_reference %}
+                        <tr>
+                            <th class="text-muted">Reference</th>
+                            <td>{{ commission.payment_reference }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if commission.notes %}
+                        <tr>
+                            <th class="text-muted">Notes</th>
+                            <td>{{ commission.notes }}</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Line Items -->
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0">Line Items</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Machine</th>
+                        <th class="text-end">Cash</th>
+                        <th class="text-end">Card</th>
+                        <th class="text-end">Gross Revenue</th>
+                        <th class="text-end">Deductions</th>
+                        <th class="text-end">Net Revenue</th>
+                        <th class="text-end">Commission</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in line_items %}
+                    <tr>
+                        <td>{{ item.machine_name }}</td>
+                        <td class="text-end">{{ format_currency(item.cash_amount) }}</td>
+                        <td class="text-end">{{ format_currency(item.card_amount) }}</td>
+                        <td class="text-end">{{ format_currency(item.gross_revenue) }}</td>
+                        <td class="text-end text-danger">{{ format_currency(item.total_deductions) }}</td>
+                        <td class="text-end">{{ format_currency(item.net_revenue) }}</td>
+                        <td class="text-end fw-medium">{{ format_currency(item.commission_amount) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-3">No line items.</td></tr>
+                    {% endfor %}
+                </tbody>
+                {% if line_items|length > 0 %}
+                <tfoot class="table-light">
+                    <tr class="fw-bold">
+                        <td>Totals</td>
+                        <td class="text-end">{{ format_currency(commission.total_cash) }}</td>
+                        <td class="text-end">{{ format_currency(commission.total_card) }}</td>
+                        <td class="text-end">{{ format_currency(commission.gross_revenue) }}</td>
+                        <td class="text-end text-danger">{{ format_currency(commission.total_deductions) }}</td>
+                        <td class="text-end">{{ format_currency(commission.net_revenue) }}</td>
+                        <td class="text-end">{{ format_currency(commission.commission_amount) }}</td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

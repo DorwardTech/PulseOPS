@@ -1,0 +1,146 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Machines{% endblock %}
+{% block page_title %}Machines{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div></div>
+    <a href="/machines/create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Add Machine
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="/machines" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="active" {{ filters.status == 'active' ? 'selected' }}>Active</option>
+                    <option value="maintenance" {{ filters.status == 'maintenance' ? 'selected' }}>Maintenance</option>
+                    <option value="inactive" {{ filters.status == 'inactive' ? 'selected' }}>Inactive</option>
+                    <option value="in_storage" {{ filters.status == 'in_storage' ? 'selected' }}>In Storage</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Customer</label>
+                <select name="customer_id" class="form-select">
+                    <option value="">All Customers</option>
+                    {% for customer in customers %}
+                        <option value="{{ customer.id }}" {{ filters.customer_id == customer.id ? 'selected' }}>{{ customer.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Machine Type</label>
+                <select name="machine_type_id" class="form-select">
+                    <option value="">All Types</option>
+                    {% for type in machine_types %}
+                        <option value="{{ type.id }}" {{ filters.machine_type_id == type.id ? 'selected' }}>{{ type.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Search machines..." value="{{ filters.search }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Machines Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Machine Code</th>
+                        <th>Name</th>
+                        <th>Customer</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Location</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for machine in machines %}
+                    <tr>
+                        <td><strong>{{ machine.machine_code }}</strong></td>
+                        <td>{{ machine.name }}</td>
+                        <td>
+                            {% if machine.customer %}
+                                <a href="/customers/{{ machine.customer.id }}">{{ machine.customer.name }}</a>
+                            {% else %}
+                                <span class="text-muted">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ machine.machine_type.name|default('--') }}</td>
+                        <td>
+                            {% if machine.status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                            {% elseif machine.status == 'maintenance' %}
+                                <span class="badge bg-warning text-dark">Maintenance</span>
+                            {% elseif machine.status == 'inactive' %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% elseif machine.status == 'in_storage' %}
+                                <span class="badge bg-info">In Storage</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ machine.location_details|default('--') }}</td>
+                        <td class="text-end">
+                            <a href="/machines/{{ machine.id }}" class="btn btn-sm btn-outline-primary" title="View">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="/machines/{{ machine.id }}/edit" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST" action="/machines/{{ machine.id }}/delete" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this machine?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No machines found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination and pagination.total_pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ pagination.current_page <= 1 ? 'disabled' }}">
+            <a class="page-link" href="?page={{ pagination.current_page - 1 }}{{ filters.status ? '&status=' ~ filters.status }}{{ filters.customer_id ? '&customer_id=' ~ filters.customer_id }}{{ filters.machine_type_id ? '&machine_type_id=' ~ filters.machine_type_id }}{{ filters.search ? '&search=' ~ filters.search }}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% for page in 1..pagination.total_pages %}
+        <li class="page-item {{ pagination.current_page == page ? 'active' }}">
+            <a class="page-link" href="?page={{ page }}{{ filters.status ? '&status=' ~ filters.status }}{{ filters.customer_id ? '&customer_id=' ~ filters.customer_id }}{{ filters.machine_type_id ? '&machine_type_id=' ~ filters.machine_type_id }}{{ filters.search ? '&search=' ~ filters.search }}">{{ page }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item {{ pagination.current_page >= pagination.total_pages ? 'disabled' }}">
+            <a class="page-link" href="?page={{ pagination.current_page + 1 }}{{ filters.status ? '&status=' ~ filters.status }}{{ filters.customer_id ? '&customer_id=' ~ filters.customer_id }}{{ filters.machine_type_id ? '&machine_type_id=' ~ filters.machine_type_id }}{{ filters.search ? '&search=' ~ filters.search }}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

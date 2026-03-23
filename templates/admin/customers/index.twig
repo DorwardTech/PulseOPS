@@ -1,0 +1,126 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Customers{% endblock %}
+{% block page_title %}Customers{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div></div>
+    <a href="/customers/create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Add Customer
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="/customers" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Search customers..." value="{{ filters.search }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    <option value="active" {{ filters.status == 'active' ? 'selected' }}>Active</option>
+                    <option value="inactive" {{ filters.status == 'inactive' ? 'selected' }}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a href="/customers" class="btn btn-outline-secondary w-100">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Customers Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Contact</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Commission Rate</th>
+                        <th>Machines</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                    <tr>
+                        <td><strong>{{ customer.name }}</strong></td>
+                        <td>{{ customer.contact_name|default('--') }}</td>
+                        <td>
+                            {% if customer.email %}
+                                <a href="mailto:{{ customer.email }}">{{ customer.email }}</a>
+                            {% else %}
+                                --
+                            {% endif %}
+                        </td>
+                        <td>{{ customer.phone|default('--') }}</td>
+                        <td>{{ customer.commission_rate is not null ? customer.commission_rate ~ '%' : '--' }}</td>
+                        <td><span class="badge bg-primary rounded-pill">{{ customer.machines_count|default(0) }}</span></td>
+                        <td>
+                            {% if customer.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="/customers/{{ customer.id }}" class="btn btn-sm btn-outline-primary" title="View">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="/customers/{{ customer.id }}/edit" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST" action="/customers/{{ customer.id }}/delete" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this customer?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">No customers found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if pagination and pagination.total_pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ pagination.current_page <= 1 ? 'disabled' }}">
+            <a class="page-link" href="?page={{ pagination.current_page - 1 }}{{ filters.search ? '&search=' ~ filters.search }}{{ filters.status ? '&status=' ~ filters.status }}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% for page in 1..pagination.total_pages %}
+        <li class="page-item {{ pagination.current_page == page ? 'active' }}">
+            <a class="page-link" href="?page={{ page }}{{ filters.search ? '&search=' ~ filters.search }}{{ filters.status ? '&status=' ~ filters.status }}">{{ page }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item {{ pagination.current_page >= pagination.total_pages ? 'disabled' }}">
+            <a class="page-link" href="?page={{ pagination.current_page + 1 }}{{ filters.search ? '&search=' ~ filters.search }}{{ filters.status ? '&status=' ~ filters.status }}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

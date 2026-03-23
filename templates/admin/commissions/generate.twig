@@ -1,0 +1,62 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Generate Commissions{% endblock %}
+{% block page_title %}Generate Commissions{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <!-- Info Box -->
+        <div class="alert alert-info d-flex align-items-start mb-4">
+            <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+            <div>
+                <strong>Commission Formula (V3):</strong>
+                <ol class="mb-0 mt-2">
+                    <li>Gross Revenue = Cash + Card</li>
+                    <li>Deduct transaction fees (N x processing fee)</li>
+                    <li>Deduct parts cost (Parts x Rate%)</li>
+                    <li>Deduct labour cost (Labour x Rate%)</li>
+                    <li>Net Revenue = Gross - Deductions</li>
+                    <li>Commission = Net Revenue x Commission Rate%</li>
+                    <li>Apply adjustments and carry forward</li>
+                </ol>
+                <small class="text-muted mt-1 d-block">Prepaid amounts are tracked separately and not included in the commission calculation.</small>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST" action="/commissions/generate">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                    <div class="mb-3">
+                        <label for="customer_id" class="form-label">Customer <span class="text-danger">*</span></label>
+                        <select class="form-select" id="customer_id" name="customer_id" required>
+                            <option value="">-- Select Customer --</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.id }}">{{ customer.name }} ({{ customer.commission_rate }}%)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="period_start" class="form-label">Period Start <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="period_start" name="period_start" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="period_end" class="form-label">Period End <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="period_end" name="period_end" required>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="/commissions" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-calculator me-1"></i> Generate Commission
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

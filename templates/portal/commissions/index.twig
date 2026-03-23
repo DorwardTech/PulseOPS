@@ -1,0 +1,60 @@
+{% extends "layouts/portal.twig" %}
+
+{% block title %}Commissions{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">Commission Payments</h4>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Period</th>
+                        <th class="text-end">Gross Revenue</th>
+                        <th class="text-end">Net Revenue</th>
+                        <th class="text-end">Commission</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for commission in commissions %}
+                    <tr>
+                        <td class="fw-medium">{{ commission.period_label }}</td>
+                        <td class="text-end">{{ format_currency(commission.gross_revenue) }}</td>
+                        <td class="text-end">{{ format_currency(commission.net_revenue) }}</td>
+                        <td class="text-end fw-medium">{{ format_currency(commission.commission_amount) }}</td>
+                        <td>
+                            {% if commission.status == 'draft' %}
+                                <span class="badge bg-secondary">Draft</span>
+                            {% elseif commission.status == 'approved' %}
+                                <span class="badge bg-primary">Approved</span>
+                            {% elseif commission.status == 'paid' %}
+                                <span class="badge bg-success">Paid</span>
+                            {% elseif commission.status == 'void' %}
+                                <span class="badge bg-danger">Void</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ commission.status|capitalize }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="/portal/commissions/{{ commission.id }}" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-eye me-1"></i>View
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No commission records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

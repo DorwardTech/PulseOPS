@@ -1,0 +1,119 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Nayax Integration{% endblock %}
+{% block page_title %}Nayax Integration{% endblock %}
+{% block content %}
+<!-- Overview Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-4">
+        <div class="card stat-card">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-cpu"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Total Devices</div>
+                    <div class="fs-4 fw-bold">{{ stats.total_devices|default(0) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="card stat-card">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-link-45deg"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Linked Devices</div>
+                    <div class="fs-4 fw-bold">{{ stats.linked_devices|default(0) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="card stat-card">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Last Sync</div>
+                    <div class="fs-6 fw-bold">{{ stats.last_sync ? format_date(stats.last_sync) : 'Never' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body d-flex flex-wrap gap-2">
+        <form method="POST" action="/nayax/sync-devices" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-arrow-repeat me-1"></i> Sync Devices
+            </button>
+        </form>
+        <form method="POST" action="/nayax/import-transactions" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-download me-1"></i> Import Transactions
+            </button>
+        </form>
+        <a href="/nayax/devices" class="btn btn-outline-primary">
+            <i class="bi bi-cpu me-1"></i> View Devices
+        </a>
+        <a href="/nayax/transactions" class="btn btn-outline-primary">
+            <i class="bi bi-receipt me-1"></i> View Transactions
+        </a>
+    </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Recent Transactions</h6>
+        <a href="/nayax/transactions" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Device</th>
+                        <th class="text-end">Amount</th>
+                        <th>Payment Type</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in recent_transactions %}
+                    <tr>
+                        <td>{{ format_date(txn.transaction_date) }}</td>
+                        <td>{{ txn.device_name|default(txn.device_id) }}</td>
+                        <td class="text-end fw-medium">{{ format_currency(txn.amount) }}</td>
+                        <td><span class="badge bg-secondary">{{ txn.payment_type }}</span></td>
+                        <td>
+                            {% if txn.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                            {% elseif txn.status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% elseif txn.status == 'failed' %}
+                                <span class="badge bg-danger">Failed</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ txn.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No recent transactions.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

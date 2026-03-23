@@ -1,0 +1,48 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/var/www/html
+      - ./public/uploads:/var/www/html/public/uploads
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+    env_file:
+      - .env
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - pulseops
+
+  mariadb:
+    image: mariadb:11
+    ports:
+      - "3306:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: rootsecret
+      MARIADB_DATABASE: pulseops
+      MARIADB_USER: pulseops
+      MARIADB_PASSWORD: secret
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pulseops
+
+volumes:
+  mariadb_data:
+
+networks:
+  pulseops:
+    driver: bridge

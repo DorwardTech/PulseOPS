@@ -1,0 +1,128 @@
+{% extends "layouts/portal.twig" %}
+
+{% block title %}Job #{{ job.id }} - {{ job.title }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/portal/jobs" class="text-decoration-none">Jobs</a></li>
+        <li class="breadcrumb-item active">Job #{{ job.id }}</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <!-- Job Details -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ job.title }}</h5>
+                <span class="badge" style="background-color: {{ job.status_color }}">{{ job.status_name }}</span>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-3">
+                    <tbody>
+                        <tr>
+                            <th class="text-muted" style="width: 150px;">Machine</th>
+                            <td>
+                                <a href="/portal/machines/{{ job.machine_id }}" class="text-decoration-none">{{ job.machine_name }}</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Priority</th>
+                            <td>
+                                {% if job.priority == 'critical' %}
+                                    <span class="badge bg-danger">Critical</span>
+                                {% elseif job.priority == 'high' %}
+                                    <span class="badge bg-warning text-dark">High</span>
+                                {% elseif job.priority == 'medium' %}
+                                    <span class="badge bg-info text-dark">Medium</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Low</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Status</th>
+                            <td>
+                                <span class="badge" style="background-color: {{ job.status_color }}">{{ job.status_name }}</span>
+                            </td>
+                        </tr>
+                        {% if job.scheduled_date %}
+                        <tr>
+                            <th class="text-muted">Scheduled Date</th>
+                            <td>{{ format_date(job.scheduled_date) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if job.completed_date %}
+                        <tr>
+                            <th class="text-muted">Completed Date</th>
+                            <td>{{ format_date(job.completed_date) }}</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+
+                {% if job.description %}
+                <h6>Description</h6>
+                <div class="bg-light rounded p-3 mb-0">
+                    {{ job.description|nl2br }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Notes (non-internal only) -->
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0">Notes</h6>
+            </div>
+            <div class="card-body">
+                {% if notes|length > 0 %}
+                    {% for note in notes %}
+                    <div class="d-flex gap-3 {% if not loop.last %}mb-3 pb-3 border-bottom{% endif %}">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="bi bi-person"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong class="small">{{ note.author_name }}</strong>
+                                <small class="text-muted">{{ format_date(note.created_at) }}</small>
+                            </div>
+                            <p class="mb-0">{{ note.content|nl2br }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center mb-0 py-2">No notes on this job.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Photos -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0">Photos</h6>
+            </div>
+            <div class="card-body">
+                {% if photos|length > 0 %}
+                <div class="row g-2">
+                    {% for photo in photos %}
+                    <div class="col-6">
+                        <a href="{{ photo.url }}" target="_blank">
+                            <img src="{{ photo.thumbnail_url|default(photo.url) }}" alt="{{ photo.caption|default('Job photo') }}" class="img-fluid rounded">
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0 py-3">No photos attached.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Commissions{% endblock %}
+{% block page_title %}Commissions{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div></div>
+    <a href="/commissions/generate" class="btn btn-primary">
+        <i class="bi bi-calculator me-1"></i> Generate Commissions
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="/commissions" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Customer</label>
+                <select name="customer_id" class="form-select">
+                    <option value="">All Customers</option>
+                    {% for customer in customers %}
+                        <option value="{{ customer.id }}" {{ filters.customer_id == customer.id ? 'selected' }}>{{ customer.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="draft" {{ filters.status == 'draft' ? 'selected' }}>Draft</option>
+                    <option value="approved" {{ filters.status == 'approved' ? 'selected' }}>Approved</option>
+                    <option value="paid" {{ filters.status == 'paid' ? 'selected' }}>Paid</option>
+                    <option value="void" {{ filters.status == 'void' ? 'selected' }}>Void</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Period</label>
+                <input type="month" name="period" class="form-control" value="{{ filters.period }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Commissions Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Period</th>
+                        <th>Customer</th>
+                        <th class="text-end">Gross Revenue</th>
+                        <th class="text-end">Net Revenue</th>
+                        <th class="text-end">Commission</th>
+                        <th class="text-end">Prepaid</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for commission in commissions %}
+                    <tr>
+                        <td>{{ format_date(commission.period_start) }} - {{ format_date(commission.period_end) }}</td>
+                        <td>
+                            {% if commission.customer %}
+                                <a href="/customers/{{ commission.customer.id }}">{{ commission.customer.name }}</a>
+                            {% else %}
+                                --
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ format_currency(commission.gross_revenue) }}</td>
+                        <td class="text-end">{{ format_currency(commission.net_revenue) }}</td>
+                        <td class="text-end"><strong>{{ format_currency(commission.commission_amount) }}</strong></td>
+                        <td class="text-end">{{ format_currency(commission.prepaid_amount) }}</td>
+                        <td>
+                            {% if commission.status == 'draft' %}
+                                <span class="badge bg-secondary">Draft</span>
+                            {% elseif commission.status == 'approved' %}
+                                <span class="badge bg-primary">Approved</span>
+                            {% elseif commission.status == 'paid' %}
+                                <span class="badge bg-success">Paid</span>
+                            {% elseif commission.status == 'void' %}
+                                <span class="badge bg-danger">Void</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="/commissions/{{ commission.id }}" class="btn btn-sm btn-outline-primary" title="View">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">No commissions found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if pagination and pagination.total_pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ pagination.current_page <= 1 ? 'disabled' }}">
+            <a class="page-link" href="?page={{ pagination.current_page - 1 }}{{ filters.customer_id ? '&customer_id=' ~ filters.customer_id }}{{ filters.status ? '&status=' ~ filters.status }}{{ filters.period ? '&period=' ~ filters.period }}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% for page in 1..pagination.total_pages %}
+        <li class="page-item {{ pagination.current_page == page ? 'active' }}">
+            <a class="page-link" href="?page={{ page }}{{ filters.customer_id ? '&customer_id=' ~ filters.customer_id }}{{ filters.status ? '&status=' ~ filters.status }}{{ filters.period ? '&period=' ~ filters.period }}">{{ page }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item {{ pagination.current_page >= pagination.total_pages ? 'disabled' }}">
+            <a class="page-link" href="?page={{ pagination.current_page + 1 }}{{ filters.customer_id ? '&customer_id=' ~ filters.customer_id }}{{ filters.status ? '&status=' ~ filters.status }}{{ filters.period ? '&period=' ~ filters.period }}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
