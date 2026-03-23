@@ -46,9 +46,16 @@
                             <p>{% block subtitle %}Operations Management System{% endblock %}</p>
                         </div>
 
-                        {% if error %}
+                        {% if flash_error %}
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            {{ error }}
+                            {{ flash_error }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endif %}
+
+                        {% if flash_success %}
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            {{ flash_success }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                         {% endif %}
