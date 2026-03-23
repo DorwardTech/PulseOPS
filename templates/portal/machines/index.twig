@@ -1,0 +1,58 @@
+{% extends "layouts/portal.twig" %}
+
+{% block title %}My Machines{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">My Machines</h4>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Machine Code</th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Location</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for machine in machines %}
+                    <tr>
+                        <td class="fw-medium">{{ machine.code }}</td>
+                        <td>{{ machine.name }}</td>
+                        <td>{{ machine.type_name }}</td>
+                        <td>
+                            {% if machine.status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                            {% elseif machine.status == 'inactive' %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% elseif machine.status == 'maintenance' %}
+                                <span class="badge bg-warning text-dark">Maintenance</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ machine.status|capitalize }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ machine.location|default('-') }}</td>
+                        <td class="text-end">
+                            <a href="/portal/machines/{{ machine.id }}" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-eye me-1"></i>View
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No machines assigned to your account.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

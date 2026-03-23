@@ -1,0 +1,95 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Nayax Devices{% endblock %}
+{% block page_title %}Nayax Devices{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="/nayax" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back to Nayax
+    </a>
+    <form method="POST" action="/nayax/sync-devices" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-arrow-repeat me-1"></i> Sync Devices
+        </button>
+    </form>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Device ID</th>
+                        <th>Name</th>
+                        <th>Serial</th>
+                        <th>Model</th>
+                        <th>Status</th>
+                        <th>Linked Machine</th>
+                        <th>Last Communication</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in devices %}
+                    <tr>
+                        <td><strong>{{ device.nayax_device_id }}</strong></td>
+                        <td>{{ device.name|default('--') }}</td>
+                        <td><code>{{ device.serial_number|default('--') }}</code></td>
+                        <td>{{ device.model|default('--') }}</td>
+                        <td>
+                            {% if device.status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                            {% elseif device.status == 'inactive' %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% elseif device.status == 'offline' %}
+                                <span class="badge bg-warning">Offline</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ device.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if device.machine %}
+                                <a href="/machines/{{ device.machine.id }}">{{ device.machine.name }}</a>
+                            {% else %}
+                                <span class="text-muted">Not linked</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ device.last_communication ? format_date(device.last_communication) : '--' }}</td>
+                        <td class="text-end">
+                            {% if device.machine_id %}
+                                <form method="POST" action="/nayax/devices/{{ device.id }}/unlink" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Unlink this device from its machine?')">
+                                        <i class="bi bi-link-45deg me-1"></i> Unlink
+                                    </button>
+                                </form>
+                            {% else %}
+                                <form method="POST" action="/nayax/devices/{{ device.id }}/link" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <div class="input-group input-group-sm" style="width: 250px; display: inline-flex;">
+                                        <select name="machine_id" class="form-select form-select-sm" required>
+                                            <option value="">Select Machine...</option>
+                                            {% for machine in machines %}
+                                                <option value="{{ machine.id }}">{{ machine.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-link-45deg"></i> Link
+                                        </button>
+                                    </div>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">No devices found. Try syncing from Nayax.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

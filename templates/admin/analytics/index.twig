@@ -1,0 +1,168 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Analytics{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+{% block content %}
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Total Revenue (MTD)</div>
+                        <h4 class="mb-0">{{ format_currency(stats.mtd_revenue|default(0)) }}</h4>
+                    </div>
+                    <div class="stat-icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Active Machines</div>
+                        <h4 class="mb-0">{{ stats.active_machines|default(0) }}</h4>
+                    </div>
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-joystick"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Commissions Pending</div>
+                        <h4 class="mb-0">{{ format_currency(stats.pending_commissions|default(0)) }}</h4>
+                    </div>
+                    <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-calculator"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Open Jobs</div>
+                        <h4 class="mb-0">{{ stats.open_jobs|default(0) }}</h4>
+                    </div>
+                    <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                        <i class="bi bi-tools"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Revenue Chart -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Revenue Overview (12 Months)</h6>
+    </div>
+    <div class="card-body">
+        <canvas id="revenueChart" height="300"></canvas>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up-arrow fs-1 text-primary mb-3 d-block"></i>
+                <h5>Revenue Analytics</h5>
+                <p class="text-muted">Detailed revenue breakdown by machine, customer, and time period.</p>
+                <a href="/analytics/revenue" class="btn btn-outline-primary">View Report</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-speedometer2 fs-1 text-success mb-3 d-block"></i>
+                <h5>Machine Performance</h5>
+                <p class="text-muted">Compare machine performance, uptime, and revenue per machine.</p>
+                <a href="/analytics/machines" class="btn btn-outline-success">View Report</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-people fs-1 text-warning mb-3 d-block"></i>
+                <h5>Customer Analytics</h5>
+                <p class="text-muted">Customer revenue contribution, commission summaries, and trends.</p>
+                <a href="/analytics/customers" class="btn btn-outline-warning">View Report</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ chart_labels|json_encode|raw }},
+            datasets: [
+                {
+                    label: 'Cash',
+                    data: {{ chart_cash|json_encode|raw }},
+                    backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Card',
+                    data: {{ chart_card|json_encode|raw }},
+                    backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Prepaid',
+                    data: {{ chart_prepaid|json_encode|raw }},
+                    backgroundColor: 'rgba(13, 202, 240, 0.5)',
+                    borderRadius: 4,
+                    borderDash: [5, 5]
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { stacked: true },
+                y: {
+                    stacked: true,
+                    ticks: {
+                        callback: function(value) { return '$' + value.toLocaleString(); }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

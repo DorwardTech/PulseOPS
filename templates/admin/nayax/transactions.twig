@@ -1,0 +1,124 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Nayax Transactions{% endblock %}
+{% block page_title %}Nayax Transactions{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <a href="/nayax" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back to Nayax
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="/nayax/transactions" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Device</label>
+                <select name="device_id" class="form-select">
+                    <option value="">All Devices</option>
+                    {% for device in devices %}
+                        <option value="{{ device.id }}" {{ filters.device_id == device.id ? 'selected' }}>{{ device.name|default(device.nayax_device_id) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Payment Type</label>
+                <select name="payment_type" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="credit_card" {{ filters.payment_type == 'credit_card' ? 'selected' }}>Credit Card</option>
+                    <option value="debit_card" {{ filters.payment_type == 'debit_card' ? 'selected' }}>Debit Card</option>
+                    <option value="mobile" {{ filters.payment_type == 'mobile' ? 'selected' }}>Mobile Payment</option>
+                    <option value="prepaid" {{ filters.payment_type == 'prepaid' ? 'selected' }}>Prepaid</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Device</th>
+                        <th class="text-end">Amount</th>
+                        <th>Payment Type</th>
+                        <th>Status</th>
+                        <th class="text-center">Aggregated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in transactions %}
+                    <tr>
+                        <td>{{ format_date(txn.transaction_date) }}</td>
+                        <td>{{ txn.device_name|default(txn.device_id) }}</td>
+                        <td class="text-end fw-medium">{{ format_currency(txn.amount) }}</td>
+                        <td><span class="badge bg-secondary">{{ txn.payment_type }}</span></td>
+                        <td>
+                            {% if txn.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                            {% elseif txn.status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% elseif txn.status == 'failed' %}
+                                <span class="badge bg-danger">Failed</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ txn.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if txn.is_aggregated %}
+                                <span class="badge bg-success">Yes</span>
+                            {% else %}
+                                <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No transactions found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if pagination and pagination.total_pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ pagination.current_page <= 1 ? 'disabled' }}">
+            <a class="page-link" href="?page={{ pagination.current_page - 1 }}{{ filters.date_from ? '&date_from=' ~ filters.date_from }}{{ filters.date_to ? '&date_to=' ~ filters.date_to }}{{ filters.device_id ? '&device_id=' ~ filters.device_id }}{{ filters.payment_type ? '&payment_type=' ~ filters.payment_type }}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% for page in 1..pagination.total_pages %}
+        <li class="page-item {{ pagination.current_page == page ? 'active' }}">
+            <a class="page-link" href="?page={{ page }}{{ filters.date_from ? '&date_from=' ~ filters.date_from }}{{ filters.date_to ? '&date_to=' ~ filters.date_to }}{{ filters.device_id ? '&device_id=' ~ filters.device_id }}{{ filters.payment_type ? '&payment_type=' ~ filters.payment_type }}">{{ page }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item {{ pagination.current_page >= pagination.total_pages ? 'disabled' }}">
+            <a class="page-link" href="?page={{ pagination.current_page + 1 }}{{ filters.date_from ? '&date_from=' ~ filters.date_from }}{{ filters.date_to ? '&date_to=' ~ filters.date_to }}{{ filters.device_id ? '&device_id=' ~ filters.device_id }}{{ filters.payment_type ? '&payment_type=' ~ filters.payment_type }}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

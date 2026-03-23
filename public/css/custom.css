@@ -1,0 +1,82 @@
+/* PulseOPS V3 - Custom Styles (supplements Bootstrap 5) */
+
+/* Stat Cards */
+.stat-card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Commission Breakdown */
+.commission-breakdown {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+.commission-breakdown .line-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+.commission-breakdown .line-item:last-child {
+    border-bottom: none;
+}
+.commission-breakdown .line-item.total {
+    font-weight: 700;
+    font-size: 1.1em;
+    border-top: 2px solid #dee2e6;
+    padding-top: 0.75rem;
+    margin-top: 0.25rem;
+}
+.commission-breakdown .line-item.deduction .amount {
+    color: #dc3545;
+}
+.commission-breakdown .line-item.addition .amount {
+    color: #198754;
+}
+
+/* Prepaid indicator */
+.prepaid-indicator {
+    color: #6f42c1;
+    font-style: italic;
+}
+
+/* Table improvements */
+.table th {
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    color: #6c757d;
+}
+
+/* Action buttons in tables */
+.btn-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+/* Settings tabs */
+.settings-tabs .nav-link {
+    color: #495057;
+    border: none;
+    padding: 0.75rem 1rem;
+}
+.settings-tabs .nav-link.active {
+    color: #0d6efd;
+    border-bottom: 2px solid #0d6efd;
+    background: transparent;
+}
+
+/* Print styles */
+@media print {
+    .sidebar, .top-navbar, .btn, .no-print { display: none !important; }
+    .main-content { margin-left: 0 !important; }
+    .page-content { padding: 0 !important; }
+}

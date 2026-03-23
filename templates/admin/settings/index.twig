@@ -1,0 +1,607 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block content %}
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#general" type="button">General</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#commission" type="button">Commission</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nayax" type="button">Nayax</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#email" type="button">Email</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#users" type="button">Users</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#roles" type="button">Roles</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#job-statuses" type="button">Job Statuses</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#machine-types" type="button">Machine Types</button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- General Tab -->
+    <div class="tab-pane fade show active" id="general">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <form method="POST" action="/settings/general">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="company_name" class="form-label">Company Name</label>
+                            <input type="text" class="form-control" id="company_name" name="company_name" value="{{ settings.company_name }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="company_email" class="form-label">Company Email</label>
+                            <input type="email" class="form-control" id="company_email" name="company_email" value="{{ settings.company_email }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="company_phone" class="form-label">Company Phone</label>
+                            <input type="text" class="form-control" id="company_phone" name="company_phone" value="{{ settings.company_phone }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="timezone" class="form-label">Timezone</label>
+                            <select class="form-select" id="timezone" name="timezone">
+                                <option value="Australia/Sydney" {{ settings.timezone == 'Australia/Sydney' ? 'selected' }}>Australia/Sydney</option>
+                                <option value="Australia/Melbourne" {{ settings.timezone == 'Australia/Melbourne' ? 'selected' }}>Australia/Melbourne</option>
+                                <option value="Australia/Brisbane" {{ settings.timezone == 'Australia/Brisbane' ? 'selected' }}>Australia/Brisbane</option>
+                                <option value="Australia/Perth" {{ settings.timezone == 'Australia/Perth' ? 'selected' }}>Australia/Perth</option>
+                                <option value="Australia/Adelaide" {{ settings.timezone == 'Australia/Adelaide' ? 'selected' }}>Australia/Adelaide</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="company_address" class="form-label">Company Address</label>
+                            <textarea class="form-control" id="company_address" name="company_address" rows="2">{{ settings.company_address }}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="currency" class="form-label">Currency</label>
+                            <select class="form-select" id="currency" name="currency">
+                                <option value="AUD" {{ settings.currency == 'AUD' ? 'selected' }}>AUD - Australian Dollar</option>
+                                <option value="USD" {{ settings.currency == 'USD' ? 'selected' }}>USD - US Dollar</option>
+                                <option value="NZD" {{ settings.currency == 'NZD' ? 'selected' }}>NZD - New Zealand Dollar</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i> Save General Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Commission Tab -->
+    <div class="tab-pane fade" id="commission">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <form method="POST" action="/settings/commission">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="default_commission_rate" class="form-label">Default Commission Rate</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="default_commission_rate" name="default_commission_rate" step="0.01" min="0" max="100" value="{{ settings.default_commission_rate }}">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="default_processing_fee" class="form-label">Default Processing Fee (per transaction)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="default_processing_fee" name="default_processing_fee" step="0.01" min="0" value="{{ settings.default_processing_fee }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="labour_hourly_rate" class="form-label">Labour Hourly Rate</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="labour_hourly_rate" name="labour_hourly_rate" step="0.01" min="0" value="{{ settings.labour_hourly_rate }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="labour_increment_minutes" class="form-label">Labour Increment (minutes)</label>
+                            <input type="number" class="form-control" id="labour_increment_minutes" name="labour_increment_minutes" min="1" value="{{ settings.labour_increment_minutes }}">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i> Save Commission Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nayax Tab -->
+    <div class="tab-pane fade" id="nayax">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <form method="POST" action="/settings/nayax">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="nayax_enabled" name="nayax_enabled" value="1" {{ settings.nayax_enabled ? 'checked' }}>
+                                <label class="form-check-label" for="nayax_enabled">Enable Nayax Integration</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="nayax_cash_counting_enabled" name="nayax_cash_counting_enabled" value="1" {{ settings.nayax_cash_counting_enabled ? 'checked' }}>
+                                <label class="form-check-label" for="nayax_cash_counting_enabled">Enable Cash Counting via Nayax</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="nayax_api_token" class="form-label">API Token</label>
+                            <input type="password" class="form-control" id="nayax_api_token" name="nayax_api_token" value="{{ settings.nayax_api_token }}" placeholder="Enter API token">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="nayax_operator_id" class="form-label">Operator ID</label>
+                            <input type="text" class="form-control" id="nayax_operator_id" name="nayax_operator_id" value="{{ settings.nayax_operator_id }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="nayax_environment" class="form-label">Environment</label>
+                            <select class="form-select" id="nayax_environment" name="nayax_environment">
+                                <option value="qa" {{ settings.nayax_environment == 'qa' ? 'selected' }}>QA / Sandbox</option>
+                                <option value="production" {{ settings.nayax_environment == 'production' ? 'selected' }}>Production</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i> Save Nayax Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Tab -->
+    <div class="tab-pane fade" id="email">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <form method="POST" action="/settings/email">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="smtp_host" class="form-label">SMTP Host</label>
+                            <input type="text" class="form-control" id="smtp_host" name="smtp_host" value="{{ settings.smtp_host }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="smtp_port" class="form-label">SMTP Port</label>
+                            <input type="number" class="form-control" id="smtp_port" name="smtp_port" value="{{ settings.smtp_port|default(587) }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="smtp_username" class="form-label">SMTP Username</label>
+                            <input type="text" class="form-control" id="smtp_username" name="smtp_username" value="{{ settings.smtp_username }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="smtp_password" class="form-label">SMTP Password</label>
+                            <input type="password" class="form-control" id="smtp_password" name="smtp_password" value="{{ settings.smtp_password }}" placeholder="Enter password">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="smtp_encryption" class="form-label">Encryption</label>
+                            <select class="form-select" id="smtp_encryption" name="smtp_encryption">
+                                <option value="tls" {{ settings.smtp_encryption == 'tls' ? 'selected' }}>TLS</option>
+                                <option value="ssl" {{ settings.smtp_encryption == 'ssl' ? 'selected' }}>SSL</option>
+                                <option value="" {{ settings.smtp_encryption == '' ? 'selected' }}>None</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="smtp_from_address" class="form-label">From Address</label>
+                            <input type="email" class="form-control" id="smtp_from_address" name="smtp_from_address" value="{{ settings.smtp_from_address }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="smtp_from_name" class="form-label">From Name</label>
+                            <input type="text" class="form-control" id="smtp_from_name" name="smtp_from_name" value="{{ settings.smtp_from_name }}">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i> Save Email Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Tab -->
+    <div class="tab-pane fade" id="users">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.full_name }}</td>
+                                <td>{{ user.email }}</td>
+                                <td><span class="badge bg-primary">{{ user.role.name|default(user.role) }}</span></td>
+                                <td>
+                                    {% if user.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <!-- Edit User Modal -->
+                            <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="POST" action="/settings/users/{{ user.id }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Edit User: {{ user.full_name }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Full Name</label>
+                                                    <input type="text" class="form-control" name="full_name" value="{{ user.full_name }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Email</label>
+                                                    <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Role</label>
+                                                    <select class="form-select" name="role_id">
+                                                        {% for role in roles %}
+                                                            <option value="{{ role.id }}" {{ user.role_id == role.id ? 'selected' }}>{{ role.name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">New Password <small class="text-muted">(leave blank to keep)</small></label>
+                                                    <input type="password" class="form-control" name="password">
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="is_active" value="1" {{ user.is_active ? 'checked' }}>
+                                                    <label class="form-check-label">Active</label>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                    <i class="bi bi-plus-lg me-1"></i> Add User
+                </button>
+            </div>
+        </div>
+
+        <!-- Add User Modal -->
+        <div class="modal fade" id="addUserModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="POST" action="/settings/users">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add User</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="full_name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" name="password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Role</label>
+                                <select class="form-select" name="role_id">
+                                    {% for role in roles %}
+                                        <option value="{{ role.id }}">{{ role.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create User</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Roles Tab -->
+    <div class="tab-pane fade" id="roles">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Role Name</th>
+                                <th>Slug</th>
+                                <th>Users</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for role in roles %}
+                            <tr>
+                                <td><strong>{{ role.name }}</strong></td>
+                                <td><code>{{ role.slug }}</code></td>
+                                <td><span class="badge bg-primary rounded-pill">{{ role.users_count|default(0) }}</span></td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editRoleModal{{ role.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    {% if role.slug != 'admin' %}
+                                    <form method="POST" action="/settings/roles/{{ role.id }}/delete" class="d-inline" onsubmit="return confirm('Delete this role?')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+
+                            <div class="modal fade" id="editRoleModal{{ role.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="POST" action="/settings/roles/{{ role.id }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Edit Role</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Role Name</label>
+                                                    <input type="text" class="form-control" name="name" value="{{ role.name }}" required>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary">Save</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <form method="POST" action="/settings/roles" class="row g-2 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="col-md-8">
+                        <label class="form-label small">New Role Name</label>
+                        <input type="text" class="form-control form-control-sm" name="name" required>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">Add Role</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Statuses Tab -->
+    <div class="tab-pane fade" id="job-statuses">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Status Name</th>
+                                <th>Color</th>
+                                <th>Preview</th>
+                                <th>Order</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for status in job_statuses %}
+                            <tr>
+                                <td><strong>{{ status.name }}</strong></td>
+                                <td><code>{{ status.color }}</code></td>
+                                <td><span class="badge" style="background-color: {{ status.color }}">{{ status.name }}</span></td>
+                                <td>{{ status.sort_order }}</td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editStatusModal{{ status.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="POST" action="/settings/job-statuses/{{ status.id }}/delete" class="d-inline" onsubmit="return confirm('Delete this status?')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+
+                            <div class="modal fade" id="editStatusModal{{ status.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="POST" action="/settings/job-statuses/{{ status.id }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Edit Job Status</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Name</label>
+                                                    <input type="text" class="form-control" name="name" value="{{ status.name }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Color</label>
+                                                    <input type="color" class="form-control form-control-color" name="color" value="{{ status.color }}">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Sort Order</label>
+                                                    <input type="number" class="form-control" name="sort_order" value="{{ status.sort_order }}" min="0">
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary">Save</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <form method="POST" action="/settings/job-statuses" class="row g-2 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="col-md-4">
+                        <label class="form-label small">Status Name</label>
+                        <input type="text" class="form-control form-control-sm" name="name" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Color</label>
+                        <input type="color" class="form-control form-control-color form-control-sm" name="color" value="#6c757d">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Order</label>
+                        <input type="number" class="form-control form-control-sm" name="sort_order" value="0" min="0">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">Add Status</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Machine Types Tab -->
+    <div class="tab-pane fade" id="machine-types">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Type Name</th>
+                                <th>Description</th>
+                                <th>Machines</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for type in machine_types %}
+                            <tr>
+                                <td><strong>{{ type.name }}</strong></td>
+                                <td>{{ type.description|default('--') }}</td>
+                                <td><span class="badge bg-primary rounded-pill">{{ type.machines_count|default(0) }}</span></td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editTypeModal{{ type.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="POST" action="/settings/machine-types/{{ type.id }}/delete" class="d-inline" onsubmit="return confirm('Delete this machine type?')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+
+                            <div class="modal fade" id="editTypeModal{{ type.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="POST" action="/settings/machine-types/{{ type.id }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Edit Machine Type</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Name</label>
+                                                    <input type="text" class="form-control" name="name" value="{{ type.name }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Description</label>
+                                                    <textarea class="form-control" name="description" rows="2">{{ type.description }}</textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary">Save</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <form method="POST" action="/settings/machine-types" class="row g-2 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="col-md-4">
+                        <label class="form-label small">Type Name</label>
+                        <input type="text" class="form-control form-control-sm" name="name" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small">Description</label>
+                        <input type="text" class="form-control form-control-sm" name="description">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">Add Type</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

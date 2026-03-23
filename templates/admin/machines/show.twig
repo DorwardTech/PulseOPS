@@ -1,0 +1,244 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Machine: {{ machine.name }}{% endblock %}
+{% block page_title %}{{ machine.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <span class="text-muted">{{ machine.machine_code }}</span>
+        {% if machine.status == 'active' %}
+            <span class="badge bg-success ms-2">Active</span>
+        {% elseif machine.status == 'maintenance' %}
+            <span class="badge bg-warning text-dark ms-2">Maintenance</span>
+        {% elseif machine.status == 'inactive' %}
+            <span class="badge bg-secondary ms-2">Inactive</span>
+        {% elseif machine.status == 'in_storage' %}
+            <span class="badge bg-info ms-2">In Storage</span>
+        {% endif %}
+    </div>
+    <div>
+        <a href="/machines/{{ machine.id }}/edit" class="btn btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i> Edit
+        </a>
+        <a href="/machines" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview" type="button">Overview</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#revenue" type="button">Revenue</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#jobs" type="button">Jobs</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#photos" type="button">Photos</button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- Overview Tab -->
+    <div class="tab-pane fade show active" id="overview">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent"><h6 class="mb-0">Machine Details</h6></div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5">Machine Code</dt>
+                            <dd class="col-sm-7">{{ machine.machine_code }}</dd>
+                            <dt class="col-sm-5">Name</dt>
+                            <dd class="col-sm-7">{{ machine.name }}</dd>
+                            <dt class="col-sm-5">Type</dt>
+                            <dd class="col-sm-7">{{ machine.machine_type.name|default('--') }}</dd>
+                            <dt class="col-sm-5">Serial Number</dt>
+                            <dd class="col-sm-7">{{ machine.serial_number|default('--') }}</dd>
+                            <dt class="col-sm-5">Manufacturer</dt>
+                            <dd class="col-sm-7">{{ machine.manufacturer|default('--') }}</dd>
+                            <dt class="col-sm-5">Model</dt>
+                            <dd class="col-sm-7">{{ machine.model|default('--') }}</dd>
+                            <dt class="col-sm-5">Installation Date</dt>
+                            <dd class="col-sm-7">{{ machine.installation_date ? format_date(machine.installation_date) : '--' }}</dd>
+                            <dt class="col-sm-5">Nayax Cash Counting</dt>
+                            <dd class="col-sm-7">{{ machine.nayax_cash_counting ? 'Enabled' : 'Disabled' }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-transparent"><h6 class="mb-0">Customer</h6></div>
+                    <div class="card-body">
+                        {% if machine.customer %}
+                            <p class="mb-1"><strong><a href="/customers/{{ machine.customer.id }}">{{ machine.customer.name }}</a></strong></p>
+                            <p class="mb-1 text-muted">{{ machine.customer.email|default('') }}</p>
+                            <p class="mb-0 text-muted">{{ machine.customer.phone|default('') }}</p>
+                        {% else %}
+                            <p class="text-muted mb-0">No customer assigned.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent"><h6 class="mb-0">Location &amp; Notes</h6></div>
+                    <div class="card-body">
+                        <p class="mb-2"><strong>Location:</strong> {{ machine.location_details|default('Not specified') }}</p>
+                        <p class="mb-0"><strong>Notes:</strong> {{ machine.notes|default('No notes') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Tab -->
+    <div class="tab-pane fade" id="revenue">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Recent Revenue</h6>
+                <a href="/revenue?machine_id={{ machine.id }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th class="text-end">Cash</th>
+                                <th class="text-end">Card</th>
+                                <th class="text-end fst-italic text-info">Prepaid</th>
+                                <th>Source</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in revenue_entries %}
+                            <tr>
+                                <td>{{ format_date(entry.collection_date) }}</td>
+                                <td class="text-end">{{ format_currency(entry.cash_amount) }}</td>
+                                <td class="text-end">{{ format_currency(entry.card_amount) }}</td>
+                                <td class="text-end fst-italic text-info">{{ format_currency(entry.prepaid_amount) }}</td>
+                                <td>{{ entry.source }}</td>
+                                <td><span class="badge bg-{{ entry.status == 'verified' ? 'success' : 'warning' }}">{{ entry.status }}</span></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">No revenue entries found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Jobs Tab -->
+    <div class="tab-pane fade" id="jobs">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Maintenance Jobs</h6>
+                <a href="/jobs/create?machine_id={{ machine.id }}" class="btn btn-sm btn-outline-primary">Create Job</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Job #</th>
+                                <th>Title</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Scheduled</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in jobs %}
+                            <tr>
+                                <td><strong>#{{ job.id }}</strong></td>
+                                <td>{{ job.title }}</td>
+                                <td><span class="badge" style="background-color: {{ job.status_color|default('#6c757d') }}">{{ job.status_name|default(job.status) }}</span></td>
+                                <td>
+                                    {% if job.priority == 'high' %}
+                                        <span class="badge bg-danger">High</span>
+                                    {% elseif job.priority == 'medium' %}
+                                        <span class="badge bg-warning text-dark">Medium</span>
+                                    {% else %}
+                                        <span class="badge bg-info">Low</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ job.scheduled_date ? format_date(job.scheduled_date) : '--' }}</td>
+                                <td class="text-end">
+                                    <a href="/jobs/{{ job.id }}" class="btn btn-sm btn-outline-primary">View</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">No jobs found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photos Tab -->
+    <div class="tab-pane fade" id="photos">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0">Photos</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-4">
+                    {% for photo in photos %}
+                    <div class="col-6 col-md-3">
+                        <div class="card border-0 shadow-sm">
+                            <img src="{{ photo.url }}" class="card-img-top" alt="{{ photo.caption|default('Machine photo') }}" style="height: 180px; object-fit: cover;">
+                            <div class="card-body p-2 text-center">
+                                <small class="text-muted">{{ photo.caption|default('') }}</small>
+                                <form method="POST" action="/machines/{{ machine.id }}/photos/{{ photo.id }}/delete" class="mt-1">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this photo?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-12">
+                        <p class="text-muted text-center">No photos uploaded yet.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Upload Form -->
+                <form method="POST" action="/machines/{{ machine.id }}/photos" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label for="photo" class="form-label">Upload Photo</label>
+                            <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="caption" class="form-label">Caption</label>
+                            <input type="text" class="form-control" id="caption" name="caption" placeholder="Optional caption">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-upload me-1"></i> Upload
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

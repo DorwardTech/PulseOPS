@@ -1,0 +1,115 @@
+{% extends "layouts/portal.twig" %}
+
+{% block title %}{{ machine.name }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/portal/machines" class="text-decoration-none">Machines</a></li>
+        <li class="breadcrumb-item active">{{ machine.name }}</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <!-- Machine Details -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ machine.name }}</h5>
+                {% if machine.status == 'active' %}
+                    <span class="badge bg-success">Active</span>
+                {% elseif machine.status == 'inactive' %}
+                    <span class="badge bg-secondary">Inactive</span>
+                {% elseif machine.status == 'maintenance' %}
+                    <span class="badge bg-warning text-dark">Maintenance</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ machine.status|capitalize }}</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <th class="text-muted" style="width: 140px;">Machine Code</th>
+                            <td>{{ machine.code }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Type</th>
+                            <td>{{ machine.type_name }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Location</th>
+                            <td>{{ machine.location|default('-') }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-white border-top">
+                <a href="/portal/machines/{{ machine.id }}/report-issue" class="btn btn-warning">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Report Issue
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photos Gallery -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0">Photos</h6>
+            </div>
+            <div class="card-body">
+                {% if photos|length > 0 %}
+                <div class="row g-2">
+                    {% for photo in photos %}
+                    <div class="col-4">
+                        <a href="{{ photo.url }}" target="_blank">
+                            <img src="{{ photo.thumbnail_url|default(photo.url) }}" alt="{{ photo.caption|default('Machine photo') }}" class="img-fluid rounded">
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0 py-3">No photos available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Revenue -->
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Recent Revenue</h6>
+        <a href="/portal/revenue?machine_id={{ machine.id }}" class="btn btn-sm btn-outline-success">View All Revenue</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th class="text-end">Cash</th>
+                        <th class="text-end">Card</th>
+                        <th class="text-end">Prepaid</th>
+                        <th class="text-end">Total (Cash+Card)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rev in recent_revenue %}
+                    <tr>
+                        <td>{{ format_date(rev.collection_date) }}</td>
+                        <td class="text-end">{{ format_currency(rev.cash_amount) }}</td>
+                        <td class="text-end">{{ format_currency(rev.card_amount) }}</td>
+                        <td class="text-end text-muted">{{ format_currency(rev.prepaid_amount) }}</td>
+                        <td class="text-end fw-medium">{{ format_currency(rev.cash_amount + rev.card_amount) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-3">No revenue recorded yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

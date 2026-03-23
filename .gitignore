@@ -1,0 +1,28 @@
+# Dependencies
+/vendor/
+node_modules/
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Cache
+/var/cache/
+/var/log/
+
+# Uploads (keep directory structure)
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# Docker volumes
+mariadb_data/
+
+# OS files
+.DS_Store
+Thumbs.db

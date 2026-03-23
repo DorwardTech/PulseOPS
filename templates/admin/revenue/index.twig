@@ -1,0 +1,194 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Revenue{% endblock %}
+{% block page_title %}Revenue{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div></div>
+    <a href="/revenue/create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Add Revenue
+    </a>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1">Total Cash</div>
+                <h4 class="mb-0 text-success">{{ format_currency(summary.total_cash|default(0)) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1">Total Card</div>
+                <h4 class="mb-0 text-primary">{{ format_currency(summary.total_card|default(0)) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1 fst-italic">Total Prepaid (separate)</div>
+                <h4 class="mb-0 text-info fst-italic">{{ format_currency(summary.total_prepaid|default(0)) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1">Gross Revenue</div>
+                <h4 class="mb-0">{{ format_currency(summary.gross_revenue|default(0)) }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="/revenue" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Machine</label>
+                <select name="machine_id" class="form-select">
+                    <option value="">All Machines</option>
+                    {% for machine in machines %}
+                        <option value="{{ machine.id }}" {{ filters.machine_id == machine.id ? 'selected' }}>{{ machine.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Customer</label>
+                <select name="customer_id" class="form-select">
+                    <option value="">All Customers</option>
+                    {% for customer in customers %}
+                        <option value="{{ customer.id }}" {{ filters.customer_id == customer.id ? 'selected' }}>{{ customer.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">Source</label>
+                <select name="source" class="form-select">
+                    <option value="">All</option>
+                    <option value="manual" {{ filters.source == 'manual' ? 'selected' }}>Manual</option>
+                    <option value="nayax" {{ filters.source == 'nayax' ? 'selected' }}>Nayax</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    <option value="pending" {{ filters.status == 'pending' ? 'selected' }}>Pending</option>
+                    <option value="verified" {{ filters.status == 'verified' ? 'selected' }}>Verified</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Revenue Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Machine</th>
+                        <th>Customer</th>
+                        <th class="text-end">Cash</th>
+                        <th class="text-end">Card</th>
+                        <th class="text-end fst-italic text-info">Prepaid</th>
+                        <th>Source</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in revenue_entries %}
+                    <tr>
+                        <td>{{ format_date(entry.collection_date) }}</td>
+                        <td>
+                            {% if entry.machine %}
+                                <a href="/machines/{{ entry.machine.id }}">{{ entry.machine.name }}</a>
+                            {% else %}
+                                --
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.customer %}
+                                <a href="/customers/{{ entry.customer.id }}">{{ entry.customer.name }}</a>
+                            {% else %}
+                                --
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ format_currency(entry.cash_amount) }}</td>
+                        <td class="text-end">{{ format_currency(entry.card_amount) }}</td>
+                        <td class="text-end fst-italic text-info">{{ format_currency(entry.prepaid_amount) }}</td>
+                        <td><span class="badge bg-{{ entry.source == 'nayax' ? 'info' : 'secondary' }}">{{ entry.source }}</span></td>
+                        <td>
+                            {% if entry.status == 'verified' %}
+                                <span class="badge bg-success">Verified</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="/revenue/{{ entry.id }}/edit" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST" action="/revenue/{{ entry.id }}/delete" class="d-inline" onsubmit="return confirm('Delete this revenue entry?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">No revenue entries found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if pagination and pagination.total_pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ pagination.current_page <= 1 ? 'disabled' }}">
+            <a class="page-link" href="?page={{ pagination.current_page - 1 }}{{ filters.date_from ? '&date_from=' ~ filters.date_from }}{{ filters.date_to ? '&date_to=' ~ filters.date_to }}{{ filters.machine_id ? '&machine_id=' ~ filters.machine_id }}{{ filters.customer_id ? '&customer_id=' ~ filters.customer_id }}{{ filters.source ? '&source=' ~ filters.source }}{{ filters.status ? '&status=' ~ filters.status }}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% for page in 1..pagination.total_pages %}
+        <li class="page-item {{ pagination.current_page == page ? 'active' }}">
+            <a class="page-link" href="?page={{ page }}{{ filters.date_from ? '&date_from=' ~ filters.date_from }}{{ filters.date_to ? '&date_to=' ~ filters.date_to }}{{ filters.machine_id ? '&machine_id=' ~ filters.machine_id }}{{ filters.customer_id ? '&customer_id=' ~ filters.customer_id }}{{ filters.source ? '&source=' ~ filters.source }}{{ filters.status ? '&status=' ~ filters.status }}">{{ page }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item {{ pagination.current_page >= pagination.total_pages ? 'disabled' }}">
+            <a class="page-link" href="?page={{ pagination.current_page + 1 }}{{ filters.date_from ? '&date_from=' ~ filters.date_from }}{{ filters.date_to ? '&date_to=' ~ filters.date_to }}{{ filters.machine_id ? '&machine_id=' ~ filters.machine_id }}{{ filters.customer_id ? '&customer_id=' ~ filters.customer_id }}{{ filters.source ? '&source=' ~ filters.source }}{{ filters.status ? '&status=' ~ filters.status }}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,9 @@
+.git
+.env
+vendor
+node_modules
+mariadb_data
+*.md
+docs/
+.gitignore
+docker-compose.yml

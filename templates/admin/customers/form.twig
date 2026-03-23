@@ -1,0 +1,147 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}{{ customer is defined ? 'Edit Customer' : 'Add Customer' }}{% endblock %}
+{% block page_title %}{{ customer is defined ? 'Edit Customer' : 'Add Customer' }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <form method="POST" action="{{ customer is defined ? '/customers/' ~ customer.id : '/customers' }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <!-- Contact Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h6 class="mb-0"><i class="bi bi-person me-2"></i>Contact Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="name" class="form-label">Business Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ customer.name|default(old.name) }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="contact_name" class="form-label">Contact Name</label>
+                            <input type="text" class="form-control" id="contact_name" name="contact_name" value="{{ customer.contact_name|default(old.contact_name) }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ customer.email|default(old.email) }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="phone" name="phone" value="{{ customer.phone|default(old.phone) }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="is_active">
+                                <option value="1" {{ (customer.is_active|default(old.is_active)|default(1)) ? 'selected' }}>Active</option>
+                                <option value="0" {{ (customer is defined and not customer.is_active) ? 'selected' }}>Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Address -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h6 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Address</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="address_line1" class="form-label">Address Line 1</label>
+                            <input type="text" class="form-control" id="address_line1" name="address_line1" value="{{ customer.address_line1|default(old.address_line1) }}">
+                        </div>
+                        <div class="col-12">
+                            <label for="address_line2" class="form-label">Address Line 2</label>
+                            <input type="text" class="form-control" id="address_line2" name="address_line2" value="{{ customer.address_line2|default(old.address_line2) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" name="city" value="{{ customer.city|default(old.city) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="state" class="form-label">State</label>
+                            <input type="text" class="form-control" id="state" name="state" value="{{ customer.state|default(old.state) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="postcode" class="form-label">Postcode</label>
+                            <input type="text" class="form-control" id="postcode" name="postcode" value="{{ customer.postcode|default(old.postcode) }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Commission Settings -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h6 class="mb-0"><i class="bi bi-calculator me-2"></i>Commission Settings</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="commission_rate" class="form-label">Commission Rate</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="commission_rate" name="commission_rate" step="0.01" min="0" max="100" value="{{ customer.commission_rate|default(old.commission_rate) }}">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="processing_fee" class="form-label">Processing Fee</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="processing_fee" name="processing_fee" step="0.01" min="0" value="{{ customer.processing_fee|default(old.processing_fee) }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment / Bank Details -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h6 class="mb-0"><i class="bi bi-bank me-2"></i>Payment / Bank Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="bank_name" class="form-label">Bank Name</label>
+                            <input type="text" class="form-control" id="bank_name" name="bank_name" value="{{ customer.bank_name|default(old.bank_name) }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="bank_account_name" class="form-label">Account Name</label>
+                            <input type="text" class="form-control" id="bank_account_name" name="bank_account_name" value="{{ customer.bank_account_name|default(old.bank_account_name) }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="bank_bsb" class="form-label">BSB</label>
+                            <input type="text" class="form-control" id="bank_bsb" name="bank_bsb" value="{{ customer.bank_bsb|default(old.bank_bsb) }}" placeholder="000-000">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="bank_account_number" class="form-label">Account Number</label>
+                            <input type="text" class="form-control" id="bank_account_number" name="bank_account_number" value="{{ customer.bank_account_number|default(old.bank_account_number) }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h6 class="mb-0"><i class="bi bi-sticky me-2"></i>Notes</h6>
+                </div>
+                <div class="card-body">
+                    <textarea class="form-control" id="notes" name="notes" rows="4">{{ customer.notes|default(old.notes) }}</textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="/customers" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>
+                    {{ customer is defined ? 'Update Customer' : 'Create Customer' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

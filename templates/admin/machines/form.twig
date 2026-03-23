@@ -1,0 +1,114 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}{{ machine is defined ? 'Edit Machine' : 'Add Machine' }}{% endblock %}
+{% block page_title %}{{ machine is defined ? 'Edit Machine' : 'Add Machine' }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ machine is defined ? '/machines/' ~ machine.id : '/machines' }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="machine_code" class="form-label">Machine Code <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="machine_code" name="machine_code" value="{{ machine.machine_code|default(old.machine_code) }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ machine.name|default(old.name) }}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="customer_id" class="form-label">Customer</label>
+                            <select class="form-select" id="customer_id" name="customer_id">
+                                <option value="">-- Select Customer --</option>
+                                {% for customer in customers %}
+                                    <option value="{{ customer.id }}" {{ (machine.customer_id|default(old.customer_id)) == customer.id ? 'selected' }}>{{ customer.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="machine_type_id" class="form-label">Machine Type</label>
+                            <select class="form-select" id="machine_type_id" name="machine_type_id">
+                                <option value="">-- Select Type --</option>
+                                {% for type in machine_types %}
+                                    <option value="{{ type.id }}" {{ (machine.machine_type_id|default(old.machine_type_id)) == type.id ? 'selected' }}>{{ type.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ machine.description|default(old.description) }}</textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="location_details" class="form-label">Location Details</label>
+                            <textarea class="form-control" id="location_details" name="location_details" rows="2">{{ machine.location_details|default(old.location_details) }}</textarea>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="active" {{ (machine.status|default(old.status)|default('active')) == 'active' ? 'selected' }}>Active</option>
+                                <option value="maintenance" {{ (machine.status|default(old.status)) == 'maintenance' ? 'selected' }}>Maintenance</option>
+                                <option value="inactive" {{ (machine.status|default(old.status)) == 'inactive' ? 'selected' }}>Inactive</option>
+                                <option value="in_storage" {{ (machine.status|default(old.status)) == 'in_storage' ? 'selected' }}>In Storage</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="serial_number" class="form-label">Serial Number</label>
+                            <input type="text" class="form-control" id="serial_number" name="serial_number" value="{{ machine.serial_number|default(old.serial_number) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="manufacturer" class="form-label">Manufacturer</label>
+                            <input type="text" class="form-control" id="manufacturer" name="manufacturer" value="{{ machine.manufacturer|default(old.manufacturer) }}">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="model" class="form-label">Model</label>
+                            <input type="text" class="form-control" id="model" name="model" value="{{ machine.model|default(old.model) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="commission_rate" class="form-label">Commission Rate Override</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="commission_rate" name="commission_rate" step="0.01" min="0" max="100" value="{{ machine.commission_rate|default(old.commission_rate) }}" placeholder="Use customer default">
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <div class="form-text">Leave blank to use customer's default rate.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="installation_date" class="form-label">Installation Date</label>
+                            <input type="date" class="form-control" id="installation_date" name="installation_date" value="{{ machine.installation_date|default(old.installation_date) }}">
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="nayax_cash_counting" name="nayax_cash_counting" value="1" {{ (machine.nayax_cash_counting|default(old.nayax_cash_counting)) ? 'checked' }}>
+                                <label class="form-check-label" for="nayax_cash_counting">
+                                    Enable Nayax Cash Counting
+                                </label>
+                                <div class="form-text">If enabled, Nayax will be used to count cash for this machine.</div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ machine.notes|default(old.notes) }}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="/machines" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>
+                            {{ machine is defined ? 'Update Machine' : 'Create Machine' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

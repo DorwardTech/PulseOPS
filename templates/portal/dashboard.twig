@@ -1,0 +1,148 @@
+{% extends "layouts/portal.twig" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1">Welcome back, {{ customer.name }}</h4>
+        <p class="text-muted mb-0">Here's an overview of your machines and revenue.</p>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-joystick fs-4"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Total Machines</div>
+                    <div class="fs-4 fw-bold">{{ stats.total_machines }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-cash-stack fs-4"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">This Month Revenue</div>
+                    <div class="fs-4 fw-bold">{{ format_currency(stats.month_revenue) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-calculator fs-4"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Latest Commission</div>
+                    <div class="fs-4 fw-bold">{{ format_currency(stats.latest_commission) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-tools fs-4"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Open Jobs</div>
+                    <div class="fs-4 fw-bold">{{ stats.open_jobs }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Recent Revenue -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Recent Revenue</h6>
+                <a href="/portal/revenue" class="btn btn-sm btn-outline-success">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Machine</th>
+                                <th class="text-end">Cash</th>
+                                <th class="text-end">Card</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rev in recent_revenue %}
+                            <tr>
+                                <td>{{ format_date(rev.collection_date) }}</td>
+                                <td>{{ rev.machine_name }}</td>
+                                <td class="text-end">{{ format_currency(rev.cash_amount) }}</td>
+                                <td class="text-end">{{ format_currency(rev.card_amount) }}</td>
+                                <td class="text-end fw-medium">{{ format_currency(rev.cash_amount + rev.card_amount) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">No recent revenue</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Jobs -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Recent Jobs</h6>
+                <a href="/portal/jobs" class="btn btn-sm btn-outline-success">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Job #</th>
+                                <th>Title</th>
+                                <th>Machine</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in recent_jobs %}
+                            <tr>
+                                <td>{{ job.id }}</td>
+                                <td>
+                                    <a href="/portal/jobs/{{ job.id }}" class="text-decoration-none">{{ job.title }}</a>
+                                </td>
+                                <td>{{ job.machine_name }}</td>
+                                <td>
+                                    <span class="badge" style="background-color: {{ job.status_color }}">{{ job.status_name }}</span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center text-muted py-3">No recent jobs</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
