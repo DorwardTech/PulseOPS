@@ -22,6 +22,7 @@ node_modules/
 
 # Docker volumes
 mariadb_data/
+docker-compose.override.yml
 
 # OS files
 .DS_Store

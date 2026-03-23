@@ -6,11 +6,7 @@ services:
     ports:
       - "${APP_PORT:-3000}:3000"
     volumes:
-      - .:/var/www/html
-      - ./public/uploads:/var/www/html/public/uploads
-    environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
+      - uploads:/var/www/html/public/uploads
     env_file:
       - .env
     depends_on:
@@ -21,8 +17,6 @@ services:
 
   mariadb:
     image: mariadb:11
-    ports:
-      - "3306:3306"
     environment:
       MARIADB_ROOT_PASSWORD: rootsecret
       MARIADB_DATABASE: pulseops
@@ -43,6 +37,7 @@ services:
 
 volumes:
   mariadb_data:
+  uploads:
 
 networks:
   pulseops:
