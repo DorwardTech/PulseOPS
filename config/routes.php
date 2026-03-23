@@ -20,6 +20,12 @@ use App\Middleware\PortalAuthMiddleware;
 use App\Middleware\CsrfMiddleware;
 
 return function (App $app) {
+    // ── Health check (no Twig/DB dependency) ────────────
+    $app->get('/healthz', function ($request, $response) {
+        $response->getBody()->write(json_encode(['status' => 'ok', 'time' => date('c')]));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
     // ── Auth (public) ─────────────────────────────────────
     $app->get('/login', [AuthController::class, 'showLogin']);
     $app->post('/login', [AuthController::class, 'login']);
