@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-3000}:80"
     volumes:
       - uploads:/var/www/html/public/uploads
     env_file:
