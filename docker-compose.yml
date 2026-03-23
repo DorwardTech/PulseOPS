@@ -16,9 +16,7 @@ services:
       - pulseops
 
   mariadb:
-    build:
-      context: .
-      dockerfile: docker/mariadb/Dockerfile
+    image: mariadb:11
     environment:
       MARIADB_ROOT_PASSWORD: rootsecret
       MARIADB_DATABASE: pulseops
