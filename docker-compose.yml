@@ -16,7 +16,9 @@ services:
       - pulseops
 
   mariadb:
-    image: mariadb:11
+    build:
+      context: .
+      dockerfile: docker/mariadb/Dockerfile
     environment:
       MARIADB_ROOT_PASSWORD: rootsecret
       MARIADB_DATABASE: pulseops
@@ -24,14 +26,12 @@ services:
       MARIADB_PASSWORD: secret
     volumes:
       - mariadb_data:/var/lib/mysql
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
     healthcheck:
-      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "root", "-prootsecret"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 30s
+      start_period: 60s
     networks:
       - pulseops
 
