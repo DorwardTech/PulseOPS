@@ -43,8 +43,9 @@ COPY . .
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/public/uploads
 
-# Create nginx pid directory
-RUN mkdir -p /run/nginx
+# Create cache and nginx pid directories
+RUN mkdir -p /var/www/html/var/cache/di /var/www/html/var/cache/twig /run/nginx \
+    && chown -R www-data:www-data /var/www/html/var
 
 # Default port
 ENV APP_PORT=3000
