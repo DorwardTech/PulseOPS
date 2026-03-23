@@ -19,8 +19,8 @@ RUN apk add --no-cache \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Configure Nginx (template — envsubst at runtime)
-COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf.template
+# Configure Nginx
+COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
 RUN rm -f /etc/nginx/http.d/default.conf.bak
 
 # Configure Supervisord
@@ -47,9 +47,7 @@ RUN chown -R www-data:www-data /var/www/html \
 RUN mkdir -p /var/www/html/var/cache/di /var/www/html/var/cache/twig /run/nginx \
     && chown -R www-data:www-data /var/www/html/var
 
-# Default port
-ENV APP_PORT=3000
-EXPOSE 3000
+EXPOSE 80
 
 # Entrypoint: template nginx config then start supervisord
 COPY docker/entrypoint.sh /entrypoint.sh
