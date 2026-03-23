@@ -18,8 +18,8 @@ RUN apk add --no-cache \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Configure Nginx
-COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
+# Configure Nginx (template — envsubst at runtime)
+COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf.template
 RUN rm -f /etc/nginx/http.d/default.conf.bak
 
 # Configure Supervisord
@@ -45,6 +45,13 @@ RUN chown -R www-data:www-data /var/www/html \
 # Create nginx pid directory
 RUN mkdir -p /run/nginx
 
-EXPOSE 8080
+# Default port
+ENV APP_PORT=3000
+EXPOSE 3000
 
+# Entrypoint: template nginx config then start supervisord
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
