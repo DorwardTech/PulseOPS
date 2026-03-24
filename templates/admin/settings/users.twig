@@ -1,27 +1,65 @@
 {% extends "layouts/admin.twig" %}
-{% block title %}Users{% endblock %}
+{% block title %}User Management{% endblock %}
 {% block page_title %}User Management{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div></div>
-    <a href="/settings/users/create" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Add User</a>
+    <div>
+        <a href="/settings" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back to Settings
+        </a>
+    </div>
+    <a href="/settings/users/create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Add User
+    </a>
 </div>
-<div class="card">
-    <div class="card-body">
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th><th></th></tr></thead>
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
                 <tbody>
-                {% for user in users %}
-                <tr>
-                    <td>{{ user.full_name }}</td>
-                    <td>{{ user.email }}</td>
-                    <td>{{ user.role_name ?? '-' }}</td>
-                    <td>{% if user.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
-                    <td>{{ user.last_login_at ?? 'Never' }}</td>
-                    <td class="text-end"><a href="/settings/users/{{ user.id }}/edit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a></td>
-                </tr>
-                {% endfor %}
+                    {% for user in users %}
+                    <tr>
+                        <td><strong>{{ user.full_name }}</strong></td>
+                        <td>{{ user.email }}</td>
+                        <td><span class="badge bg-primary">{{ user.role_name|default('--') }}</span></td>
+                        <td>
+                            {% if user.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.created_at }}</td>
+                        <td class="text-end">
+                            <a href="/settings/users/{{ user.id }}/edit" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% if auth_user.id != user.id %}
+                            <form method="POST" action="/settings/users/{{ user.id }}/delete" class="d-inline" onsubmit="return confirm('Delete this user?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No users found.</td>
+                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>

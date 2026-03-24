@@ -1,24 +1,102 @@
 {% extends "layouts/admin.twig" %}
-{% block title %}Roles{% endblock %}
+{% block title %}Role Management{% endblock %}
 {% block page_title %}Role Management{% endblock %}
 {% block content %}
-<div class="card">
-    <div class="card-body">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="/settings" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back to Settings
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>Name</th><th>Slug</th><th>Description</th><th>System</th></tr></thead>
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Role Name</th>
+                        <th>Slug</th>
+                        <th>Permissions</th>
+                        <th class="text-center">Users</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
                 <tbody>
-                {% for role in roles %}
-                <tr>
-                    <td>{{ role.name }}</td>
-                    <td><code>{{ role.slug }}</code></td>
-                    <td>{{ role.description ?? '-' }}</td>
-                    <td>{% if role.is_system %}<span class="badge bg-info">System</span>{% endif %}</td>
-                </tr>
-                {% endfor %}
+                    {% for role in roles %}
+                    <tr>
+                        <td><strong>{{ role.name }}</strong></td>
+                        <td><code>{{ role.slug }}</code></td>
+                        <td>
+                            {% if role.permissions_list|length > 0 %}
+                                {% for perm in role.permissions_list %}
+                                    <span class="badge bg-light text-dark me-1">{{ perm }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">No specific permissions</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center"><span class="badge bg-primary rounded-pill">{{ role.user_count|default(0) }}</span></td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editRoleModal{{ role.id }}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            {% if not role.is_system %}
+                            <form method="POST" action="/settings/roles/{{ role.id }}/delete" class="d-inline" onsubmit="return confirm('Delete this role?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    <!-- Edit Role Modal -->
+                    <div class="modal fade" id="editRoleModal{{ role.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <form method="POST" action="/settings/roles/{{ role.id }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Edit Role: {{ role.name }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Role Name <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" name="name" value="{{ role.name }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Slug <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" name="slug" value="{{ role.slug }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
+    </div>
+    <div class="card-footer bg-transparent">
+        <form method="POST" action="/settings/roles" class="row g-2 align-items-end">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="col-md-4">
+                <label class="form-label small">Role Name</label>
+                <input type="text" class="form-control form-control-sm" name="name" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small">Slug</label>
+                <input type="text" class="form-control form-control-sm" name="slug" required>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-sm btn-primary w-100">Add Role</button>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}

@@ -4,11 +4,14 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        {% if entry.status == 'verified' or entry.status == 'approved' %}
-            <span class="badge bg-success">{{ entry.status|capitalize }}</span>
+        {% if entry.status == 'verified' %}
+            <span class="badge bg-success">Verified</span>
+        {% elseif entry.status == 'approved' %}
+            <span class="badge bg-primary">Approved</span>
         {% else %}
-            <span class="badge bg-warning text-dark">{{ entry.status|capitalize }}</span>
+            <span class="badge bg-warning text-dark">Pending</span>
         {% endif %}
+        <span class="badge bg-{{ entry.source == 'nayax' ? 'info' : 'secondary' }} ms-1">{{ entry.source }}</span>
     </div>
     <div>
         <a href="/revenue/{{ entry.id }}/edit" class="btn btn-outline-primary">
@@ -31,7 +34,7 @@
 <div class="row g-4">
     <div class="col-md-6">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent"><h6 class="mb-0">Revenue Details</h6></div>
+            <div class="card-header bg-transparent"><h6 class="mb-0">Collection Details</h6></div>
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-5">Collection Date</dt>
@@ -47,51 +50,39 @@
                     <dt class="col-sm-5">Customer</dt>
                     <dd class="col-sm-7">{{ entry.customer_name|default('--') }}</dd>
                     <dt class="col-sm-5">Source</dt>
-                    <dd class="col-sm-7"><span class="badge bg-{{ entry.source == 'nayax' ? 'info' : 'secondary' }}">{{ entry.source }}</span></dd>
+                    <dd class="col-sm-7">{{ entry.source }}</dd>
                     <dt class="col-sm-5">Cash Source</dt>
                     <dd class="col-sm-7">{{ entry.cash_source|default('--') }}</dd>
                     <dt class="col-sm-5">Status</dt>
-                    <dd class="col-sm-7">
-                        {% if entry.status == 'verified' or entry.status == 'approved' %}
-                            <span class="badge bg-success">{{ entry.status|capitalize }}</span>
-                        {% else %}
-                            <span class="badge bg-warning text-dark">{{ entry.status|capitalize }}</span>
-                        {% endif %}
-                    </dd>
+                    <dd class="col-sm-7">{{ entry.status }}</dd>
                 </dl>
             </div>
         </div>
     </div>
     <div class="col-md-6">
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent"><h6 class="mb-0">Amounts</h6></div>
+            <div class="card-header bg-transparent"><h6 class="mb-0">Revenue Amounts</h6></div>
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-5">Cash Amount</dt>
                     <dd class="col-sm-7 text-success fw-bold">${{ entry.cash_amount|number_format(2) }}</dd>
                     <dt class="col-sm-5">Card Amount</dt>
                     <dd class="col-sm-7 text-primary fw-bold">${{ entry.card_amount|number_format(2) }}</dd>
-                    <dt class="col-sm-5 fst-italic text-info">Prepaid Amount</dt>
-                    <dd class="col-sm-7 fst-italic text-info">${{ entry.prepaid_amount|number_format(2) }}</dd>
-                    <dt class="col-sm-5 border-top pt-2 mt-2">Gross Revenue</dt>
-                    <dd class="col-sm-7 border-top pt-2 mt-2 fw-bold fs-5">${{ (entry.cash_amount + entry.card_amount)|number_format(2) }}</dd>
+                    <dt class="col-sm-5 fst-italic">Prepaid Amount</dt>
+                    <dd class="col-sm-7 text-info fst-italic">${{ entry.prepaid_amount|number_format(2) }}</dd>
+                    <dt class="col-sm-5 border-top pt-2">Gross Revenue</dt>
+                    <dd class="col-sm-7 border-top pt-2 fw-bold fs-5">${{ (entry.cash_amount + entry.card_amount)|number_format(2) }}</dd>
                 </dl>
             </div>
         </div>
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent"><h6 class="mb-0">Transactions &amp; Audit</h6></div>
+            <div class="card-header bg-transparent"><h6 class="mb-0">Transaction Counts</h6></div>
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-5">Card Transactions</dt>
                     <dd class="col-sm-7">{{ entry.card_transactions|default(0) }}</dd>
-                    <dt class="col-sm-5">Prepaid Transactions</dt>
-                    <dd class="col-sm-7">{{ entry.prepaid_transactions|default(0) }}</dd>
-                    <dt class="col-sm-5">Created By</dt>
-                    <dd class="col-sm-7">{{ entry.created_by_name|default('--') }}</dd>
-                    <dt class="col-sm-5">Approved By</dt>
-                    <dd class="col-sm-7">{{ entry.approved_by_name|default('--') }}</dd>
-                    <dt class="col-sm-5">Created At</dt>
-                    <dd class="col-sm-7">{{ entry.created_at|default('--') }}</dd>
+                    <dt class="col-sm-5 fst-italic">Prepaid Transactions</dt>
+                    <dd class="col-sm-7 fst-italic">{{ entry.prepaid_transactions|default(0) }}</dd>
                 </dl>
             </div>
         </div>
@@ -106,4 +97,20 @@
     </div>
 </div>
 {% endif %}
+
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-transparent"><h6 class="mb-0">Audit Trail</h6></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Collected By</dt>
+            <dd class="col-sm-9">{{ entry.created_by_name|default('--') }}</dd>
+            <dt class="col-sm-3">Approved By</dt>
+            <dd class="col-sm-9">{{ entry.approved_by_name|default('--') }}</dd>
+            <dt class="col-sm-3">Created</dt>
+            <dd class="col-sm-9">{{ entry.created_at|default('--') }}</dd>
+            <dt class="col-sm-3">Updated</dt>
+            <dd class="col-sm-9">{{ entry.updated_at|default('--') }}</dd>
+        </dl>
+    </div>
+</div>
 {% endblock %}
