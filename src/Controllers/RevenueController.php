@@ -8,13 +8,15 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use App\Services\Database;
 use App\Services\AuthService;
+use App\Services\AuditService;
 
 class RevenueController
 {
     public function __construct(
         private Twig $twig,
         private Database $db,
-        private AuthService $auth
+        private AuthService $auth,
+        private AuditService $audit
     ) {}
 
     /**

@@ -8,13 +8,15 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use App\Services\Database;
 use App\Services\AuthService;
+use App\Services\AuditService;
 
 class MachinesController
 {
     public function __construct(
         private Twig $twig,
         private Database $db,
-        private AuthService $auth
+        private AuthService $auth,
+        private AuditService $audit
     ) {}
 
     /**
@@ -173,6 +175,8 @@ class MachinesController
 
         $id = $this->db->insert('machines', $machineData);
 
+        $this->audit->log('created', 'machine', (int) $id, null, $machineData);
+
         $_SESSION['flash_success'] = 'Machine created successfully.';
         return $response->withHeader('Location', "/machines/{$id}")->withStatus(302);
     }
@@ -216,11 +220,19 @@ class MachinesController
             [$id]
         );
 
+        $activityLogs = $this->audit->getLogsForEntity('machine', $id);
+        foreach ($activityLogs as &$log) {
+            $log['changes'] = $log['old_values'] ? json_decode($log['old_values'], true) : null;
+            $log['new_data'] = $log['new_values'] ? json_decode($log['new_values'], true) : null;
+        }
+        unset($log);
+
         return $this->twig->render($response, 'admin/machines/show.twig', $this->viewData([
             'machine' => $machine,
             'revenue_history' => $revenueHistory,
             'photos' => $photos,
             'jobs' => $jobs,
+            'activity_logs' => $activityLogs,
         ]));
     }
 
@@ -259,6 +271,8 @@ class MachinesController
         $id = (int) $args['id'];
         $data = $request->getParsedBody();
 
+        $oldMachine = $this->db->fetch("SELECT * FROM machines WHERE id = ?", [$id]);
+
         $machineData = [
             'machine_code' => trim((string) ($data['machine_code'] ?? '')),
             'name' => trim((string) ($data['name'] ?? '')),
@@ -284,6 +298,11 @@ class MachinesController
 
         $this->db->update('machines', $machineData, 'id = ?', [$id]);
 
+        $changes = $this->audit->diff($oldMachine ?? [], $machineData);
+        if (!empty($changes)) {
+            $this->audit->log('updated', 'machine', $id, $changes);
+        }
+
         $_SESSION['flash_success'] = 'Machine updated successfully.';
         return $response->withHeader('Location', "/machines/{$id}")->withStatus(302);
     }
@@ -295,13 +314,14 @@ class MachinesController
     {
         $id = (int) $args['id'];
 
-        $machine = $this->db->fetch("SELECT id FROM machines WHERE id = ?", [$id]);
+        $machine = $this->db->fetch("SELECT * FROM machines WHERE id = ?", [$id]);
         if (!$machine) {
             $_SESSION['flash_error'] = 'Machine not found.';
             return $response->withHeader('Location', '/machines')->withStatus(302);
         }
 
         $this->db->delete('machines', 'id = ?', [$id]);
+        $this->audit->log('deleted', 'machine', $id, $machine);
 
         $_SESSION['flash_success'] = 'Machine deleted successfully.';
         return $response->withHeader('Location', '/machines')->withStatus(302);

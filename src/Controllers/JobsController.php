@@ -8,13 +8,15 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use App\Services\Database;
 use App\Services\AuthService;
+use App\Services\AuditService;
 
 class JobsController
 {
     public function __construct(
         private Twig $twig,
         private Database $db,
-        private AuthService $auth
+        private AuthService $auth,
+        private AuditService $audit
     ) {}
 
     /**
@@ -175,6 +177,7 @@ class JobsController
         // Auto-generate job_number
         $jobNumber = 'JOB-' . str_pad((string) $jobId, 6, '0', STR_PAD_LEFT);
         $this->db->update('maintenance_jobs', ['job_number' => $jobNumber], 'id = ?', [$jobId]);
+        $this->audit->log('created', 'job', (int) $jobId);
 
         $_SESSION['flash_success'] = 'Job created successfully.';
         return $response->withHeader('Location', '/jobs/' . $jobId)->withStatus(302);
@@ -322,6 +325,8 @@ class JobsController
             'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$jobId]);
 
+        $this->audit->log('updated', 'job', $jobId);
+
         $_SESSION['flash_success'] = 'Job updated successfully.';
         return $response->withHeader('Location', '/jobs/' . $jobId)->withStatus(302);
     }
@@ -354,6 +359,7 @@ class JobsController
         $this->db->delete('job_photos', 'job_id = ?', [$jobId]);
 
         $this->db->delete('maintenance_jobs', 'id = ?', [$jobId]);
+        $this->audit->log('deleted', 'job', $jobId, $job);
 
         $_SESSION['flash_success'] = 'Job deleted successfully.';
         return $response->withHeader('Location', '/jobs')->withStatus(302);
