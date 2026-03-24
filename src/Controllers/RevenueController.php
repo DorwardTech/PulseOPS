@@ -243,6 +243,11 @@ class RevenueController
             return $response->withHeader('Location', '/revenue')->withStatus(302);
         }
 
+        if (($entry['source'] ?? '') === 'nayax') {
+            $_SESSION['flash_error'] = 'Nayax revenue entries cannot be edited.';
+            return $response->withHeader('Location', '/revenue')->withStatus(302);
+        }
+
         $machines = $this->db->fetchAll(
             "SELECT m.id, m.name, m.machine_code, c.name AS customer_name
              FROM machines m
@@ -266,9 +271,14 @@ class RevenueController
         $id = (int) $args['id'];
         $data = $request->getParsedBody();
 
-        $existing = $this->db->fetch("SELECT id FROM revenue WHERE id = ?", [$id]);
+        $existing = $this->db->fetch("SELECT id, source FROM revenue WHERE id = ?", [$id]);
         if (!$existing) {
             $_SESSION['flash_error'] = 'Revenue entry not found.';
+            return $response->withHeader('Location', '/revenue')->withStatus(302);
+        }
+
+        if (($existing['source'] ?? '') === 'nayax') {
+            $_SESSION['flash_error'] = 'Nayax revenue entries cannot be edited.';
             return $response->withHeader('Location', '/revenue')->withStatus(302);
         }
 
@@ -300,9 +310,14 @@ class RevenueController
     {
         $id = (int) $args['id'];
 
-        $entry = $this->db->fetch("SELECT id FROM revenue WHERE id = ?", [$id]);
+        $entry = $this->db->fetch("SELECT id, source FROM revenue WHERE id = ?", [$id]);
         if (!$entry) {
             $_SESSION['flash_error'] = 'Revenue entry not found.';
+            return $response->withHeader('Location', '/revenue')->withStatus(302);
+        }
+
+        if (($entry['source'] ?? '') === 'nayax') {
+            $_SESSION['flash_error'] = 'Nayax revenue entries cannot be deleted.';
             return $response->withHeader('Location', '/revenue')->withStatus(302);
         }
 
