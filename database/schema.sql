@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 CREATE TABLE IF NOT EXISTS `customers` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(255) NOT NULL,
+    `business_name` VARCHAR(255) DEFAULT NULL,
     `contact_name` VARCHAR(100) DEFAULT NULL,
     `email` VARCHAR(255) DEFAULT NULL,
     `phone` VARCHAR(50) DEFAULT NULL,
@@ -69,7 +70,7 @@ CREATE TABLE IF NOT EXISTS `customers` (
     -- Commission settings
     `commission_rate` DECIMAL(5,2) DEFAULT 0.00 COMMENT 'Commission percentage (e.g., 30.00)',
     `processing_fee` DECIMAL(10,2) DEFAULT NULL COMMENT 'Per-txn fee, NULL=use system default',
-    `commission_carry_forward` DECIMAL(10,2) DEFAULT 0.00 COMMENT 'Carried from previous period (negative = they owe)',
+    `carry_forward` DECIMAL(10,2) DEFAULT 0.00 COMMENT 'Carried from previous period (negative = they owe)',
     -- Payment details
     `payment_terms` VARCHAR(50) DEFAULT 'Monthly',
     `payment_method` VARCHAR(50) DEFAULT 'Bank Transfer',

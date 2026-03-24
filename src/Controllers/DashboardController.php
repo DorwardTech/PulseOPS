@@ -62,7 +62,9 @@ class DashboardController
 
         // Open jobs count
         $openJobs = (int) $this->db->fetchColumn(
-            "SELECT COUNT(*) FROM jobs WHERE status IN ('open', 'in_progress')"
+            "SELECT COUNT(*) FROM maintenance_jobs j
+             JOIN job_statuses js ON j.status_id = js.id
+             WHERE js.slug IN ('open', 'in_progress')"
         );
 
         // Recent revenue entries (last 5)
