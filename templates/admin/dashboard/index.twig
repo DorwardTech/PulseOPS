@@ -41,9 +41,6 @@
                 <div>
                     <div class="text-muted small">Revenue (This Month)</div>
                     <div class="fs-4 fw-bold">{{ format_currency(stats.month_revenue) }}</div>
-                    {% if stats.month_prepaid > 0 %}
-                    <small class="text-info fst-italic">incl. {{ format_currency(stats.month_prepaid) }} prepaid</small>
-                    {% endif %}
                     {% if stats.revenue_change != 0 %}
                     <small class="{{ stats.revenue_change > 0 ? 'text-success' : 'text-danger' }}">
                         <i class="bi bi-{{ stats.revenue_change > 0 ? 'arrow-up' : 'arrow-down' }}"></i>
@@ -200,10 +197,6 @@
                     label: 'Card',
                     data: chartData.card || [],
                     backgroundColor: 'rgba(13, 110, 253, 0.7)',
-                }, {
-                    label: 'Prepaid',
-                    data: chartData.prepaid || [],
-                    backgroundColor: 'rgba(13, 202, 240, 0.7)',
                 }]
             },
             options: {

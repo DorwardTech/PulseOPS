@@ -417,6 +417,14 @@ class NayaxController
                     continue;
                 }
 
+                // Skip declined/failed transactions and $0 amounts
+                $amount = (float) ($txn['amount'] ?? 0);
+                $status = $txn['status'] ?? 'completed';
+                if ($amount <= 0 || in_array($status, ['declined', 'failed', 'rejected', 'cancelled', 'error'])) {
+                    $skipped++;
+                    continue;
+                }
+
                 // Check if transaction already exists
                 $exists = $this->db->exists(
                     'nayax_transactions',

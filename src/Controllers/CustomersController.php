@@ -166,10 +166,7 @@ class CustomersController
         );
 
         $revenueSummary = $this->db->fetch(
-            "SELECT COALESCE(SUM(r.cash_amount + r.card_amount + r.prepaid_amount), 0) AS total_revenue,
-                    COALESCE(SUM(r.cash_amount), 0) AS total_cash,
-                    COALESCE(SUM(r.card_amount), 0) AS total_card,
-                    COALESCE(SUM(r.prepaid_amount), 0) AS total_prepaid,
+            "SELECT COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue,
                     COUNT(*) AS total_entries
              FROM revenue r
              JOIN machines m ON r.machine_id = m.id
