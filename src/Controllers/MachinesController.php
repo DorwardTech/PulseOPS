@@ -99,7 +99,7 @@ class MachinesController
             "SELECT id, name FROM machine_types ORDER BY name"
         );
 
-        $view = $params['view'] ?? 'list';
+        $view = $params['view'] ?? 'grid';
 
         return $this->twig->render($response, 'admin/machines/index.twig', $this->viewData([
             'machines' => $machines,
