@@ -86,7 +86,7 @@
                     </li>
                     <li>
                         <span>Commission (Net &times; {{ commission.commission_rate }}%)</span>
-                        <span>{{ format_currency(commission.base_commission) }}</span>
+                        <span>{{ format_currency(commission.net_revenue * commission.commission_rate / 100) }}</span>
                     </li>
                     <li>
                         <span>Adjustments</span>
