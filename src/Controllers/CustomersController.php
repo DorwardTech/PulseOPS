@@ -106,9 +106,9 @@ class CustomersController
             'email' => trim((string) ($data['email'] ?? '')),
             'phone' => trim((string) ($data['phone'] ?? '')),
             'mobile' => trim((string) ($data['mobile'] ?? '')),
-            'address_line_1' => trim((string) ($data['address_line_1'] ?? '')),
-            'address_line_2' => trim((string) ($data['address_line_2'] ?? '')),
-            'suburb' => trim((string) ($data['suburb'] ?? '')),
+            'address_line1' => trim((string) ($data['address_line_1'] ?? '')),
+            'address_line2' => trim((string) ($data['address_line_2'] ?? '')),
+            'city' => trim((string) ($data['suburb'] ?? '')),
             'state' => trim((string) ($data['state'] ?? '')),
             'postcode' => trim((string) ($data['postcode'] ?? '')),
             'country' => trim((string) ($data['country'] ?? 'Australia')),
@@ -231,9 +231,9 @@ class CustomersController
             'email' => trim((string) ($data['email'] ?? '')),
             'phone' => trim((string) ($data['phone'] ?? '')),
             'mobile' => trim((string) ($data['mobile'] ?? '')),
-            'address_line_1' => trim((string) ($data['address_line_1'] ?? '')),
-            'address_line_2' => trim((string) ($data['address_line_2'] ?? '')),
-            'suburb' => trim((string) ($data['suburb'] ?? '')),
+            'address_line1' => trim((string) ($data['address_line_1'] ?? '')),
+            'address_line2' => trim((string) ($data['address_line_2'] ?? '')),
+            'city' => trim((string) ($data['suburb'] ?? '')),
             'state' => trim((string) ($data['state'] ?? '')),
             'postcode' => trim((string) ($data['postcode'] ?? '')),
             'country' => trim((string) ($data['country'] ?? 'Australia')),
@@ -265,9 +265,10 @@ class CustomersController
             $authUser = $this->auth->user();
             $this->db->insert('commission_rate_history', [
                 'customer_id' => $id,
-                'field' => 'commission_rate',
+                'field_changed' => 'commission_rate',
                 'old_value' => $oldRate !== null ? (string) $oldRate : null,
                 'new_value' => $newRate !== null ? (string) $newRate : null,
+                'effective_from' => date('Y-m-d'),
                 'changed_by' => $authUser['id'] ?? null,
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
@@ -280,9 +281,10 @@ class CustomersController
             $authUser = $this->auth->user();
             $this->db->insert('commission_rate_history', [
                 'customer_id' => $id,
-                'field' => 'processing_fee',
+                'field_changed' => 'processing_fee',
                 'old_value' => $oldFee !== null ? (string) $oldFee : null,
                 'new_value' => $newFee !== null ? (string) $newFee : null,
+                'effective_from' => date('Y-m-d'),
                 'changed_by' => $authUser['id'] ?? null,
                 'created_at' => date('Y-m-d H:i:s'),
             ]);

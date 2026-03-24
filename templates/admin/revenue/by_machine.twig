@@ -1,0 +1,73 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Revenue by Machine{% endblock %}
+{% block page_title %}Revenue by Machine{% endblock %}
+{% block content %}
+<!-- Date Range Filter -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="/revenue/by-machine" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+            <div class="col-md-3">
+                <a href="/revenue" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Revenue
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Revenue by Machine Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent">
+        <h6 class="mb-0">Revenue Grouped by Machine ({{ date_from }} to {{ date_to }})</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Machine Code</th>
+                        <th>Machine Name</th>
+                        <th>Customer</th>
+                        <th class="text-end">Cash</th>
+                        <th class="text-end">Card</th>
+                        <th class="text-end fst-italic text-info">Prepaid</th>
+                        <th class="text-end">Total Revenue</th>
+                        <th class="text-center">Entries</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in machine_revenue %}
+                    <tr>
+                        <td><strong><a href="/machines/{{ row.id }}">{{ row.machine_code }}</a></strong></td>
+                        <td>{{ row.name }}</td>
+                        <td>{{ row.customer_name|default('--') }}</td>
+                        <td class="text-end">${{ row.total_cash|number_format(2) }}</td>
+                        <td class="text-end">${{ row.total_card|number_format(2) }}</td>
+                        <td class="text-end fst-italic text-info">${{ row.total_prepaid|number_format(2) }}</td>
+                        <td class="text-end fw-bold">${{ row.total_revenue|number_format(2) }}</td>
+                        <td class="text-center"><span class="badge bg-primary rounded-pill">{{ row.entry_count }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">No revenue data found for the selected period.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

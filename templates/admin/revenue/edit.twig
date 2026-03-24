@@ -1,0 +1,109 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Edit Revenue{% endblock %}
+{% block page_title %}Edit Revenue{% endblock %}
+{% block content %}
+{% set revenue = entry %}
+{% include "admin/revenue/_form_fields.twig" ignore missing %}
+{# Inline the form since form.twig extends a layout and cannot be included #}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Info Box -->
+        <div class="alert alert-info d-flex align-items-start mb-4">
+            <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+            <div>
+                <strong>Revenue Calculation:</strong> Gross Revenue = Cash + Card. Prepaid amounts are tracked separately and do not contribute to gross revenue or commission calculations.
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST" action="/revenue/{{ entry.id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="machine_id" class="form-label">Machine <span class="text-danger">*</span></label>
+                            <select class="form-select" id="machine_id" name="machine_id" required>
+                                <option value="">-- Select Machine --</option>
+                                {% for machine in machines %}
+                                    <option value="{{ machine.id }}" {{ entry.machine_id == machine.id ? 'selected' }}>{{ machine.machine_code }} - {{ machine.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="collection_date" class="form-label">Collection Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="collection_date" name="collection_date" value="{{ entry.collection_date }}" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="cash_amount" class="form-label">Cash Amount <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="cash_amount" name="cash_amount" step="0.01" min="0" value="{{ entry.cash_amount|default('0.00') }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="card_amount" class="form-label">Card Amount <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="card_amount" name="card_amount" step="0.01" min="0" value="{{ entry.card_amount|default('0.00') }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="prepaid_amount" class="form-label">Prepaid Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text text-info">$</span>
+                                <input type="number" class="form-control fst-italic" id="prepaid_amount" name="prepaid_amount" step="0.01" min="0" value="{{ entry.prepaid_amount|default('0.00') }}">
+                            </div>
+                            <div class="form-text fst-italic">Tracked separately from gross revenue.</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="card_transactions" class="form-label">Card Transactions</label>
+                            <input type="number" class="form-control" id="card_transactions" name="card_transactions" min="0" value="{{ entry.card_transactions|default(0) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="prepaid_transactions" class="form-label">Prepaid Transactions</label>
+                            <input type="number" class="form-control fst-italic" id="prepaid_transactions" name="prepaid_transactions" min="0" value="{{ entry.prepaid_transactions|default(0) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="cash_source" class="form-label">Cash Source</label>
+                            <select class="form-select" id="cash_source" name="cash_source">
+                                <option value="manual" {{ entry.cash_source == 'manual' ? 'selected' }}>Manual</option>
+                                <option value="nayax" {{ entry.cash_source == 'nayax' ? 'selected' }}>Nayax</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="source" class="form-label">Source</label>
+                            <select class="form-select" id="source" name="source">
+                                <option value="manual" {{ entry.source == 'manual' ? 'selected' }}>Manual</option>
+                                <option value="nayax" {{ entry.source == 'nayax' ? 'selected' }}>Nayax</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="pending" {{ entry.status == 'pending' ? 'selected' }}>Pending</option>
+                                <option value="verified" {{ entry.status == 'verified' ? 'selected' }}>Verified</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ entry.notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="/revenue" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i> Update Revenue
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -39,7 +39,7 @@ class NayaxController
         );
 
         $recentTransactions = $this->db->fetchAll(
-            "SELECT nt.*, nd.name AS device_name, m.name AS machine_name
+            "SELECT nt.*, nd.device_name AS device_name, m.name AS machine_name
              FROM nayax_transactions nt
              LEFT JOIN nayax_devices nd ON nt.device_id = nd.device_id
              LEFT JOIN machines m ON nd.machine_id = m.id
@@ -78,7 +78,7 @@ class NayaxController
             "SELECT nd.*, m.name AS machine_name, m.machine_code
              FROM nayax_devices nd
              LEFT JOIN machines m ON nd.machine_id = m.id
-             ORDER BY nd.name ASC"
+             ORDER BY nd.device_name ASC"
         );
 
         $machines = $this->db->fetchAll(
@@ -113,17 +113,17 @@ class NayaxController
 
                 if ($existing) {
                     $this->db->update('nayax_devices', [
-                        'name' => $device['name'],
-                        'serial_number' => $device['serial'],
-                        'status' => $device['status'],
+                        'device_name' => $device['name'],
+                        'device_serial' => $device['serial'],
+                        'device_status' => $device['status'],
                         'updated_at' => date('Y-m-d H:i:s'),
                     ], 'id = ?', [$existing['id']]);
                 } else {
                     $this->db->insert('nayax_devices', [
                         'device_id' => $device['device_id'],
-                        'name' => $device['name'],
-                        'serial_number' => $device['serial'],
-                        'status' => $device['status'],
+                        'device_name' => $device['name'],
+                        'device_serial' => $device['serial'],
+                        'device_status' => $device['status'],
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s'),
                     ]);
@@ -229,7 +229,7 @@ class NayaxController
         $totalPages = max(1, (int) ceil($totalCount / $perPage));
 
         $transactions = $this->db->fetchAll(
-            "SELECT nt.*, nd.name AS device_name, m.name AS machine_name
+            "SELECT nt.*, nd.device_name AS device_name, m.name AS machine_name
              FROM nayax_transactions nt
              LEFT JOIN nayax_devices nd ON nt.device_id = nd.device_id
              LEFT JOIN machines m ON nd.machine_id = m.id
@@ -240,7 +240,7 @@ class NayaxController
         );
 
         $devices = $this->db->fetchAll(
-            "SELECT device_id, name FROM nayax_devices ORDER BY name ASC"
+            "SELECT device_id, device_name FROM nayax_devices ORDER BY device_name ASC"
         );
 
         return $this->twig->render($response, 'admin/nayax/transactions.twig', [
