@@ -33,9 +33,9 @@ INSERT INTO `settings` (`setting_key`, `setting_value`, `setting_type`, `categor
 ('smtp_from_name', 'PulseOPS', 'string', 'email', 'SMTP from name');
 
 -- Default admin user (password: changeme)
--- Password hash for 'changeme' using PASSWORD_ARGON2ID
+-- Using bcrypt for maximum compatibility; app upgrades to argon2id on next login
 INSERT INTO `users` (`role_id`, `email`, `password`, `full_name`, `is_active`) VALUES
-(1, 'admin@ntamusements.com.au', '$argon2id$v=19$m=65536,t=4,p=3$cDNyaU5Fd3Bidm1mWWVreQ$0RosU3eSwEeZGcSpV9lwiXgGlA3/Kq6BaLHo7dS9oNM', 'System Admin', TRUE);
+(1, 'admin@ntamusements.com.au', '$2y$12$HP6U8b9YZmvqXMUlvesRROpBAo4lt6.FSw6LrXVuuBhFKqc9V.9xG', 'System Admin', TRUE);
 
 -- Default job statuses
 INSERT INTO `job_statuses` (`name`, `slug`, `color`, `is_default`, `is_completed`, `sort_order`) VALUES
