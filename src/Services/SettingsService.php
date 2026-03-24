@@ -45,19 +45,21 @@ class SettingsService
             [$key]
         );
 
+        $dbType = $this->mapTypeToEnum($type ?? 'string');
+
         if ($existing) {
             $data = [
                 'setting_value' => $stringValue,
             ];
             if ($type !== null) {
-                $data['setting_type'] = $type;
+                $data['setting_type'] = $dbType;
             }
             $this->db->update('settings', $data, 'id = ?', [$existing['id']]);
         } else {
             $data = [
                 'setting_key' => $key,
                 'setting_value' => $stringValue,
-                'setting_type' => $type ?? 'string',
+                'setting_type' => $dbType,
             ];
             $this->db->insert('settings', $data);
         }
@@ -121,6 +123,19 @@ class SettingsService
     }
 
     /**
+     * Map PHP type names to the DB ENUM('string','number','boolean','json')
+     */
+    private function mapTypeToEnum(string $type): string
+    {
+        return match ($type) {
+            'int', 'integer', 'float', 'double', 'number' => 'number',
+            'bool', 'boolean' => 'boolean',
+            'json', 'array' => 'json',
+            default => 'string',
+        };
+    }
+
+    /**
      * Cast a stored value to its declared type
      */
     private function castValue(?string $value, string $type): mixed
@@ -131,7 +146,7 @@ class SettingsService
 
         return match ($type) {
             'int', 'integer' => (int) $value,
-            'float', 'double' => (float) $value,
+            'float', 'double', 'number' => str_contains($value, '.') ? (float) $value : (int) $value,
             'bool', 'boolean' => in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true),
             'json', 'array' => json_decode($value, true),
             default => $value,
