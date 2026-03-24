@@ -33,24 +33,22 @@
                 <tbody>
                     {% for device in devices %}
                     <tr>
-                        <td><strong>{{ device.nayax_device_id }}</strong></td>
-                        <td>{{ device.name|default('--') }}</td>
-                        <td><code>{{ device.serial_number|default('--') }}</code></td>
-                        <td>{{ device.model|default('--') }}</td>
+                        <td><strong>{{ device.device_id }}</strong></td>
+                        <td>{{ device.device_name|default('--') }}</td>
+                        <td><code>{{ device.device_serial|default('--') }}</code></td>
+                        <td>{{ device.device_model|default('--') }}</td>
                         <td>
-                            {% if device.status == 'active' %}
-                                <span class="badge bg-success">Active</span>
-                            {% elseif device.status == 'inactive' %}
-                                <span class="badge bg-secondary">Inactive</span>
-                            {% elseif device.status == 'offline' %}
+                            {% if device.device_status == 'online' %}
+                                <span class="badge bg-success">Online</span>
+                            {% elseif device.device_status == 'offline' %}
                                 <span class="badge bg-warning">Offline</span>
                             {% else %}
-                                <span class="badge bg-secondary">{{ device.status }}</span>
+                                <span class="badge bg-secondary">{{ device.device_status|default('Unknown') }}</span>
                             {% endif %}
                         </td>
                         <td>
-                            {% if device.machine %}
-                                <a href="/machines/{{ device.machine.id }}">{{ device.machine.name }}</a>
+                            {% if device.machine_id %}
+                                <a href="/machines/{{ device.machine_id }}">{{ device.machine_name }}</a>
                             {% else %}
                                 <span class="text-muted">Not linked</span>
                             {% endif %}

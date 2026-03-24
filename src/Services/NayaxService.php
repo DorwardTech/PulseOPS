@@ -136,8 +136,11 @@ class NayaxService
                 'device_id' => $m['MachineID'] ?? '',
                 'name' => $m['MachineName'] ?? '',
                 'serial' => $m['DeviceSerialNumber'] ?? '',
+                'model' => $m['DeviceModel'] ?? $m['MachineModel'] ?? null,
                 'status' => ($m['MachineStatusBit'] ?? 0) == 1 ? 'online' : 'offline',
-                'last_transaction' => null
+                'last_communication' => $m['LastCommunicationDate'] ?? $m['LastCommunication'] ?? null,
+                'last_transaction' => null,
+                'raw' => $m,
             ];
         }, $machines);
     }
