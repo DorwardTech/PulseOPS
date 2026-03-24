@@ -81,6 +81,7 @@
                     <option value="">All</option>
                     <option value="manual" {{ filters.source == 'manual' ? 'selected' }}>Manual</option>
                     <option value="nayax" {{ filters.source == 'nayax' ? 'selected' }}>Nayax</option>
+                    <option value="csv_import" {{ filters.source == 'csv_import' ? 'selected' }}>CSV Import</option>
                 </select>
             </div>
             <div class="col-md-1">
@@ -88,6 +89,7 @@
                 <select name="status" class="form-select">
                     <option value="">All</option>
                     <option value="pending" {{ filters.status == 'pending' ? 'selected' }}>Pending</option>
+                    <option value="approved" {{ filters.status == 'approved' ? 'selected' }}>Approved</option>
                     <option value="verified" {{ filters.status == 'verified' ? 'selected' }}>Verified</option>
                 </select>
             </div>
@@ -137,6 +139,8 @@
                         <td>
                             {% if entry.status == 'verified' %}
                                 <span class="badge bg-success">Verified</span>
+                            {% elseif entry.status == 'approved' %}
+                                <span class="badge bg-info">Approved</span>
                             {% else %}
                                 <span class="badge bg-warning text-dark">Pending</span>
                             {% endif %}
