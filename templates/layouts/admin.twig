@@ -153,6 +153,11 @@
             <a href="/settings" class="nav-link {% if active_page == 'settings' %}active{% endif %}">
                 <i class="bi bi-gear"></i> Settings
             </a>
+            {% if auth_user.role_slug == 'admin' or auth_user.permissions is defined and '*' in auth_user.permissions %}
+            <a href="/logs" class="nav-link {% if active_page == 'logs' %}active{% endif %}">
+                <i class="bi bi-journal-text"></i> Logs
+            </a>
+            {% endif %}
         </div>
     </nav>
 

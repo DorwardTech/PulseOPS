@@ -14,6 +14,7 @@ use App\Controllers\CommissionsController;
 use App\Controllers\NayaxController;
 use App\Controllers\AnalyticsController;
 use App\Controllers\SettingsController;
+use App\Controllers\LogViewerController;
 use App\Controllers\PortalController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\PortalAuthMiddleware;
@@ -163,6 +164,11 @@ return function (App $app) {
         $group->get('/settings/profile', [SettingsController::class, 'profile']);
         $group->post('/settings/profile', [SettingsController::class, 'updateProfile']);
         $group->post('/settings/profile/password', [SettingsController::class, 'updatePassword']);
+
+        // Logs (admin only — permission checked in controller)
+        $group->get('/logs', [LogViewerController::class, 'index']);
+        $group->post('/logs/php/clear', [LogViewerController::class, 'clearPhpLog']);
+        $group->post('/logs/api/clear', [LogViewerController::class, 'clearApiLogs']);
 
     })->add(CsrfMiddleware::class)->add(AuthMiddleware::class);
 
