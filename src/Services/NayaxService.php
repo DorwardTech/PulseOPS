@@ -161,8 +161,8 @@ class NayaxService
      * Get transactions (lastSales) for all linked machines in a date range.
      *
      * The Lynx API has NO global /v1/transactions endpoint.
-     * We must call GET /v1/machines/{MachineID}/lastSales per machine.
-     * Response: array of MachineLastSales objects.
+     * We call GET /v1/machines/{MachineID}/lastSales per machine,
+     * using curl_multi to fetch in parallel batches.
      */
     public function getTransactions(string $dateFrom, string $dateTo, array $machineIds = []): array
     {
@@ -183,42 +183,39 @@ class NayaxService
             return [];
         }
 
+        // Fetch lastSales for all machines in parallel
+        $rawResults = $this->fetchLastSalesMulti($machineIds);
+
         $allTransactions = [];
 
-        foreach ($machineIds as $machineId) {
-            try {
-                $sales = $this->getLastSales((int) $machineId, $dateFrom, $dateTo);
+        foreach ($rawResults as $machineId => $sales) {
+            foreach ($sales as $sale) {
+                $txnDate = $sale['AuthorizationDateTimeGMT']
+                    ?? $sale['MachineAuthorizationTime']
+                    ?? $sale['SettlementDateTimeGMT']
+                    ?? null;
 
-                foreach ($sales as $sale) {
-                    $txnDate = $sale['AuthorizationDateTimeGMT']
-                        ?? $sale['MachineAuthorizationTime']
-                        ?? $sale['SettlementDateTimeGMT']
-                        ?? null;
-
-                    // Filter by date range
-                    if ($txnDate) {
-                        $txnDay = substr($txnDate, 0, 10);
-                        if ($txnDay < $dateFrom || $txnDay > $dateTo) {
-                            continue;
-                        }
+                // Filter by date range
+                if ($txnDate) {
+                    $txnDay = substr($txnDate, 0, 10);
+                    if ($txnDay < $dateFrom || $txnDay > $dateTo) {
+                        continue;
                     }
-
-                    $allTransactions[] = [
-                        'transaction_id' => (string) ($sale['TransactionID'] ?? uniqid('txn_')),
-                        'device_id'      => (string) ($sale['MachineID'] ?? $machineId),
-                        'date'           => $txnDate ?? date('Y-m-d H:i:s'),
-                        'amount'         => (float) ($sale['SettlementValue'] ?? $sale['AuthorizationValue'] ?? 0),
-                        'payment_type'   => strtolower($sale['PaymentMethod'] ?? 'card'),
-                        'status'         => 'completed',
-                        'machine_name'   => $sale['MachineName'] ?? null,
-                        'product_name'   => $sale['ProductName'] ?? null,
-                        'card_brand'     => $sale['CardBrand'] ?? null,
-                        'currency'       => $sale['CurrencyCode'] ?? null,
-                        'raw'            => $sale,
-                    ];
                 }
-            } catch (\Exception $e) {
-                error_log("Nayax getTransactions: error for machine {$machineId}: " . $e->getMessage());
+
+                $allTransactions[] = [
+                    'transaction_id' => (string) ($sale['TransactionID'] ?? uniqid('txn_')),
+                    'device_id'      => (string) ($sale['MachineID'] ?? $machineId),
+                    'date'           => $txnDate ?? date('Y-m-d H:i:s'),
+                    'amount'         => (float) ($sale['SettlementValue'] ?? $sale['AuthorizationValue'] ?? 0),
+                    'payment_type'   => strtolower($sale['PaymentMethod'] ?? 'card'),
+                    'status'         => 'completed',
+                    'machine_name'   => $sale['MachineName'] ?? null,
+                    'product_name'   => $sale['ProductName'] ?? null,
+                    'card_brand'     => $sale['CardBrand'] ?? null,
+                    'currency'       => $sale['CurrencyCode'] ?? null,
+                    'raw'            => $sale,
+                ];
             }
         }
 
@@ -316,6 +313,82 @@ class NayaxService
     // ─── Private helpers ───────────────────────────────────────────────
 
     /**
+     * Fetch lastSales for multiple machines in parallel using curl_multi.
+     * Processes in batches of 10 to avoid overwhelming the API.
+     *
+     * @return array<string, array> Map of machineId => sales array
+     */
+    private function fetchLastSalesMulti(array $machineIds): array
+    {
+        $results = [];
+        $batchSize = 10;
+        $batches = array_chunk($machineIds, $batchSize);
+
+        $headers = [
+            'Authorization: Bearer ' . $this->token,
+            'Accept: application/json',
+        ];
+
+        foreach ($batches as $batch) {
+            $mh = curl_multi_init();
+            $handles = [];
+
+            foreach ($batch as $machineId) {
+                $url = rtrim($this->apiUrl, '/') . "/v1/machines/{$machineId}/lastSales";
+                $ch = curl_init();
+                curl_setopt_array($ch, [
+                    CURLOPT_URL => $url,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 15,
+                    CURLOPT_CONNECTTIMEOUT => 5,
+                    CURLOPT_HTTPHEADER => $headers,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                ]);
+                curl_multi_add_handle($mh, $ch);
+                $handles[(string) $machineId] = $ch;
+            }
+
+            // Execute all requests in parallel
+            do {
+                $status = curl_multi_exec($mh, $active);
+                if ($active) {
+                    curl_multi_select($mh, 1.0);
+                }
+            } while ($active && $status === CURLM_OK);
+
+            // Collect results
+            foreach ($handles as $machineId => $ch) {
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $body = curl_multi_getcontent($ch);
+                $error = curl_error($ch);
+
+                $this->logApiCall('GET', "/v1/machines/{$machineId}/lastSales", [], [
+                    'status' => $httpCode,
+                    'data' => null,
+                    'error' => $error ?: null,
+                ]);
+
+                if ($httpCode === 200 && $body) {
+                    $data = json_decode($body, true);
+                    if (is_array($data)) {
+                        $results[$machineId] = $data;
+                    }
+                } elseif ($error) {
+                    error_log("Nayax lastSales error for machine {$machineId}: {$error}");
+                }
+
+                curl_multi_remove_handle($mh, $ch);
+                curl_close($ch);
+            }
+
+            curl_multi_close($mh);
+        }
+
+        return $results;
+    }
+
+    /**
      * Fetch all machines with pagination.
      * GET /v1/machines uses ResultsLimit / ResultsOffset.
      */
@@ -394,8 +467,8 @@ class NayaxService
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 5,
