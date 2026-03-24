@@ -229,13 +229,21 @@ class CommissionsController
             'carry_forward_in' => $carryForward,
         ]);
 
-        // 5. Store in commission_payments
+        // 5. Store in commission_payments (check for existing first)
         $authUser = $this->auth->user();
 
-        $commissionId = $this->db->insert('commission_payments', [
-            'customer_id' => $customerId,
-            'period_start' => $periodStart,
-            'period_end' => $periodEnd,
+        $existing = $this->db->fetch(
+            "SELECT id, status FROM commission_payments
+             WHERE customer_id = ? AND period_start = ? AND period_end = ?",
+            [$customerId, $periodStart, $periodEnd]
+        );
+
+        if ($existing && !in_array($existing['status'], ['draft', 'void'], true)) {
+            $_SESSION['flash_error'] = "A commission for this period already exists and is {$existing['status']}. Void it first to regenerate.";
+            return $response->withHeader('Location', "/commissions/{$existing['id']}")->withStatus(302);
+        }
+
+        $commissionData = [
             'total_cash' => $totalCash,
             'total_card' => $totalCard,
             'total_prepaid' => $totalPrepaid,
@@ -254,9 +262,27 @@ class CommissionsController
             'adjustments_total' => $result['adjustments_total'],
             'commission_calculated' => $result['commission_calculated'],
             'commission_amount' => $result['commission_amount'],
-            'status' => 'draft',
-            'generated_by' => $authUser['id'] ?? null,
-        ]);
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+
+        if ($existing) {
+            // Update existing draft/void commission
+            $commissionId = (int) $existing['id'];
+            $commissionData['status'] = 'draft';
+            $commissionData['generated_by'] = $authUser['id'] ?? null;
+            $this->db->update('commission_payments', $commissionData, 'id = ?', [$commissionId]);
+
+            // Clear old line items before re-adding
+            $this->db->delete('commission_line_items', 'commission_id = ?', [$commissionId]);
+        } else {
+            // Insert new commission
+            $commissionData['customer_id'] = $customerId;
+            $commissionData['period_start'] = $periodStart;
+            $commissionData['period_end'] = $periodEnd;
+            $commissionData['status'] = 'draft';
+            $commissionData['generated_by'] = $authUser['id'] ?? null;
+            $commissionId = $this->db->insert('commission_payments', $commissionData);
+        }
 
         // Store line items if provided by calculator
         if (!empty($result['line_items'])) {
