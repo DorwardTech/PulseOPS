@@ -389,6 +389,7 @@ class MachinesController
             return $response->withHeader('Location', '/machines')->withStatus(302);
         }
 
+        $data = $request->getParsedBody();
         $uploadedFiles = $request->getUploadedFiles();
         $photo = $uploadedFiles['photo'] ?? null;
 
@@ -410,9 +411,12 @@ class MachinesController
         $this->db->insert('machine_photos', [
             'machine_id' => $machineId,
             'filename' => $filename,
-            'original_filename' => $photo->getClientFilename(),
+            'original_name' => $photo->getClientFilename(),
             'file_path' => "/uploads/machines/{$filename}",
-            'created_at' => date('Y-m-d H:i:s'),
+            'mime_type' => $photo->getClientMediaType(),
+            'file_size' => $photo->getSize(),
+            'description' => trim((string) ($data['caption'] ?? '')),
+            'uploaded_by' => $this->auth->user()['id'] ?? null,
         ]);
 
         $_SESSION['flash_success'] = 'Photo uploaded successfully.';

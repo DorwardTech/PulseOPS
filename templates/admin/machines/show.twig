@@ -199,9 +199,9 @@
                     {% for photo in photos %}
                     <div class="col-6 col-md-3">
                         <div class="card border-0 shadow-sm">
-                            <img src="{{ photo.url }}" class="card-img-top" alt="{{ photo.caption|default('Machine photo') }}" style="height: 180px; object-fit: cover;">
+                            <img src="{{ photo.file_path }}" class="card-img-top" alt="{{ photo.description|default('Machine photo') }}" style="height: 180px; object-fit: cover;">
                             <div class="card-body p-2 text-center">
-                                <small class="text-muted">{{ photo.caption|default('') }}</small>
+                                <small class="text-muted">{{ photo.description|default('') }}</small>
                                 <form method="POST" action="/machines/{{ machine.id }}/photos/{{ photo.id }}/delete" class="mt-1">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                     <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this photo?')">
