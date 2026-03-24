@@ -127,6 +127,7 @@ return function (App $app) {
         $group->post('/nayax/import', [NayaxController::class, 'processImport']);
         $group->post('/nayax/import-transactions', [NayaxController::class, 'processImport']);
         $group->post('/nayax/reaggregate', [NayaxController::class, 'reaggregate']);
+        $group->get('/nayax/diagnostics', [NayaxController::class, 'diagnostics']);
 
         // Analytics
         $group->get('/analytics', [AnalyticsController::class, 'index']);
