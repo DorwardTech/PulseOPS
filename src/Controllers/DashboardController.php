@@ -44,7 +44,7 @@ class DashboardController
             "SELECT COUNT(*) FROM customers WHERE is_active = 1"
         );
 
-        // This month revenue (cash + card, excludes prepaid per new formula)
+        // This month revenue (cash + card only, prepaid tracked separately)
         $thisMonthRevenue = (float) $this->db->fetchColumn(
             "SELECT COALESCE(SUM(cash_amount + card_amount), 0)
              FROM revenue

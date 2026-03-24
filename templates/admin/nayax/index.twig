@@ -12,7 +12,7 @@
                 </div>
                 <div>
                     <div class="text-muted small">Total Devices</div>
-                    <div class="fs-4 fw-bold">{{ stats.total_devices|default(0) }}</div>
+                    <div class="fs-4 fw-bold">{{ total_devices|default(0) }}</div>
                 </div>
             </div>
         </div>
@@ -25,7 +25,7 @@
                 </div>
                 <div>
                     <div class="text-muted small">Linked Devices</div>
-                    <div class="fs-4 fw-bold">{{ stats.linked_devices|default(0) }}</div>
+                    <div class="fs-4 fw-bold">{{ linked_devices|default(0) }}</div>
                 </div>
             </div>
         </div>
@@ -38,7 +38,7 @@
                 </div>
                 <div>
                     <div class="text-muted small">Last Sync</div>
-                    <div class="fs-6 fw-bold">{{ stats.last_sync ? format_date(stats.last_sync) : 'Never' }}</div>
+                    <div class="fs-6 fw-bold">{{ last_sync ? format_date(last_sync) : 'Never' }}</div>
                 </div>
             </div>
         </div>
