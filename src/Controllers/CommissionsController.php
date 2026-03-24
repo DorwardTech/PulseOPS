@@ -578,18 +578,18 @@ class CommissionsController
             [$id]
         );
 
-        $netAmount = $result['net_amount'] + (float) $adjustments;
+        $netAmount = $result['commission_amount'] + (float) $adjustments;
 
         $this->db->update('commission_payments', [
-            'gross_revenue' => $result['total_revenue'],
-            'total_cash' => $result['total_cash'],
-            'total_card' => $result['total_card'],
-            'total_prepaid' => $result['total_prepaid'] ?? 0,
+            'gross_revenue' => $result['gross_revenue'],
+            'total_cash' => $totalCash,
+            'total_card' => $totalCard,
+            'total_prepaid' => $totalPrepaid,
             'commission_rate' => $commissionRate,
             'commission_amount' => $result['commission_amount'],
             'processing_fee_rate' => $processingFee,
-            'processing_fees' => $result['processing_fee_amount'],
-            'total_parts_cost' => $result['total_job_costs'],
+            'processing_fees' => $result['transaction_fees'],
+            'total_parts_cost' => $totalPartsCost + $totalLabourCost,
             'carry_forward_out' => $result['carry_forward_out'] ?? 0,
             'net_revenue' => $netAmount,
             'updated_at' => date('Y-m-d H:i:s'),
