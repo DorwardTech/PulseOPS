@@ -6,12 +6,17 @@
     <a href="/nayax" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left me-1"></i> Back to Nayax
     </a>
-    <form method="POST" action="/nayax/sync-devices" class="d-inline">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button type="submit" class="btn btn-primary btn-sm">
-            <i class="bi bi-arrow-repeat me-1"></i> Sync Devices
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-success btn-sm" id="bulkLinkBtn" style="display:none;" onclick="submitBulkLink()">
+            <i class="bi bi-link-45deg me-1"></i> Link Selected (<span id="bulkCount">0</span>)
         </button>
-    </form>
+        <form method="POST" action="/nayax/sync-devices" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-arrow-repeat me-1"></i> Sync Devices
+            </button>
+        </form>
+    </div>
 </div>
 
 <div class="card border-0 shadow-sm">
@@ -63,20 +68,14 @@
                                     </button>
                                 </form>
                             {% else %}
-                                <form method="POST" action="/nayax/devices/{{ device.id }}/link" class="d-inline">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                    <div class="input-group input-group-sm" style="width: 250px; display: inline-flex;">
-                                        <select name="machine_id" class="form-select form-select-sm" required>
-                                            <option value="">Select Machine...</option>
-                                            {% for machine in machines %}
-                                                <option value="{{ machine.id }}">{{ machine.name }}{% if machine.machine_code %} ({{ machine.machine_code }}){% endif %}</option>
-                                            {% endfor %}
-                                        </select>
-                                        <button type="submit" class="btn btn-sm btn-primary">
-                                            <i class="bi bi-link-45deg"></i> Link
-                                        </button>
-                                    </div>
-                                </form>
+                                <div class="input-group input-group-sm" style="width: 250px; display: inline-flex;">
+                                    <select class="form-select form-select-sm bulk-link-select" data-device-id="{{ device.id }}">
+                                        <option value="">Select Machine...</option>
+                                        {% for machine in machines %}
+                                            <option value="{{ machine.id }}">{{ machine.name }}{% if machine.machine_code %} ({{ machine.machine_code }}){% endif %}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
                             {% endif %}
                         </td>
                     </tr>
@@ -90,4 +89,71 @@
         </div>
     </div>
 </div>
+
+<script>
+(function() {
+    var selects = document.querySelectorAll('.bulk-link-select');
+    var bulkBtn = document.getElementById('bulkLinkBtn');
+    var bulkCount = document.getElementById('bulkCount');
+
+    function getSelectedCount() {
+        var count = 0;
+        selects.forEach(function(s) { if (s.value) count++; });
+        return count;
+    }
+
+    function updateBulkButton() {
+        var count = getSelectedCount();
+        bulkCount.textContent = count;
+        bulkBtn.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+
+    selects.forEach(function(s) {
+        s.addEventListener('change', updateBulkButton);
+    });
+
+    window.submitBulkLink = function() {
+        var count = getSelectedCount();
+        if (count === 0) {
+            alert('Please select a machine for at least one device.');
+            return;
+        }
+        if (!confirm('Link ' + count + ' device(s) to their selected machines?')) {
+            return;
+        }
+
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/nayax/devices/bulk-link';
+
+        var csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrf_token';
+        csrf.value = '{{ csrf_token }}';
+        form.appendChild(csrf);
+
+        var idx = 0;
+        selects.forEach(function(s) {
+            if (s.value) {
+                var deviceInput = document.createElement('input');
+                deviceInput.type = 'hidden';
+                deviceInput.name = 'links[' + idx + '][device_id]';
+                deviceInput.value = s.dataset.deviceId;
+                form.appendChild(deviceInput);
+
+                var machineInput = document.createElement('input');
+                machineInput.type = 'hidden';
+                machineInput.name = 'links[' + idx + '][machine_id]';
+                machineInput.value = s.value;
+                form.appendChild(machineInput);
+
+                idx++;
+            }
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+    };
+})();
+</script>
 {% endblock %}

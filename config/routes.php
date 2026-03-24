@@ -119,6 +119,7 @@ return function (App $app) {
         $group->get('/nayax/devices', [NayaxController::class, 'devices']);
         $group->post('/nayax/devices/sync', [NayaxController::class, 'syncDevices']);
         $group->post('/nayax/sync-devices', [NayaxController::class, 'syncDevices']);
+        $group->post('/nayax/devices/bulk-link', [NayaxController::class, 'bulkLinkDevices']);
         $group->post('/nayax/devices/{id:[0-9]+}/link', [NayaxController::class, 'linkDevice']);
         $group->post('/nayax/devices/{id:[0-9]+}/unlink', [NayaxController::class, 'unlinkDevice']);
         $group->get('/nayax/transactions', [NayaxController::class, 'transactions']);
