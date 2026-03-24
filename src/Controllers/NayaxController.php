@@ -153,6 +153,60 @@ class NayaxController
     }
 
     /**
+     * Bulk link multiple Nayax devices to machines.
+     */
+    public function bulkLinkDevices(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+        $links = $data['links'] ?? [];
+
+        if (empty($links)) {
+            $_SESSION['flash_error'] = 'No devices selected for linking.';
+            return $response->withHeader('Location', '/nayax/devices')->withStatus(302);
+        }
+
+        $linked = 0;
+        foreach ($links as $link) {
+            $deviceId = (int) ($link['device_id'] ?? 0);
+            $machineId = (int) ($link['machine_id'] ?? 0);
+
+            if ($deviceId <= 0 || $machineId <= 0) {
+                continue;
+            }
+
+            $device = $this->db->fetch("SELECT * FROM nayax_devices WHERE id = ?", [$deviceId]);
+            if (!$device || $device['machine_id']) {
+                continue;
+            }
+
+            $this->db->update('nayax_devices', [
+                'machine_id' => $machineId,
+            ], 'id = ?', [$deviceId]);
+
+            if (!empty($device['device_id'])) {
+                $this->db->update('machines', [
+                    'nayax_device_id' => $device['device_id'],
+                ], 'id = ?', [$machineId]);
+            }
+
+            $this->audit->log('nayax_device_linked', 'machine', $machineId, [
+                'nayax_device_id' => ['from' => null, 'to' => $device['device_id'] ?? $deviceId],
+                'nayax_device_name' => ['from' => null, 'to' => $device['device_name'] ?? $device['device_id'] ?? ''],
+            ]);
+
+            $linked++;
+        }
+
+        if ($linked > 0) {
+            $_SESSION['flash_success'] = "{$linked} device(s) linked successfully.";
+        } else {
+            $_SESSION['flash_error'] = 'No devices were linked. Make sure you selected a machine for each device.';
+        }
+
+        return $response->withHeader('Location', '/nayax/devices')->withStatus(302);
+    }
+
+    /**
      * Link a Nayax device to a machine.
      */
     public function linkDevice(Request $request, Response $response, array $args = []): Response
