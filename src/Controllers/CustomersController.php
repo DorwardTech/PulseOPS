@@ -165,16 +165,17 @@ class CustomersController
             [$id]
         );
 
-        $revenueSummary = $this->db->fetch(
-            "SELECT COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue,
-                    COUNT(*) AS total_entries
+        $revenueEntries = $this->db->fetchAll(
+            "SELECT r.*, m.name AS machine_name
              FROM revenue r
              JOIN machines m ON r.machine_id = m.id
-             WHERE m.customer_id = ?",
+             WHERE m.customer_id = ?
+             ORDER BY r.collection_date DESC
+             LIMIT 50",
             [$id]
         );
 
-        $commissionHistory = $this->db->fetchAll(
+        $commissions = $this->db->fetchAll(
             "SELECT * FROM commission_payments
              WHERE customer_id = ?
              ORDER BY period_end DESC
@@ -190,8 +191,8 @@ class CustomersController
         return $this->twig->render($response, 'admin/customers/show.twig', $this->viewData([
             'customer' => $customer,
             'machines' => $machines,
-            'revenue_summary' => $revenueSummary,
-            'commission_history' => $commissionHistory,
+            'revenue_entries' => $revenueEntries,
+            'commissions' => $commissions,
             'portal_users' => $portalUsers,
         ]));
     }
