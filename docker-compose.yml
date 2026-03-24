@@ -7,8 +7,23 @@ services:
       - "${APP_PORT:-3000}:80"
     volumes:
       - uploads:/var/www/html/public/uploads
-    env_file:
-      - .env
+    environment:
+      - APP_NAME=${APP_NAME:-PulseOPS}
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_URL=${SERVICE_URL_APP:-http://localhost:3000}
+      - APP_TIMEZONE=${APP_TIMEZONE:-Australia/Darwin}
+      - DB_HOST=${DB_HOST:-mariadb}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_DATABASE=${DB_DATABASE:-pulseops}
+      - DB_USERNAME=${DB_USERNAME:-pulseops}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - DB_CHARSET=${DB_CHARSET:-utf8mb4}
+      - NAYAX_API_URL=${NAYAX_API_URL:-https://lynx.nayax.com}
+      - NAYAX_API_TOKEN=${NAYAX_API_TOKEN:-}
+      - NAYAX_OPERATOR_ID=${NAYAX_OPERATOR_ID:-}
+      - NAYAX_ENVIRONMENT=${NAYAX_ENVIRONMENT:-production}
+      - CRON_KEY=${CRON_KEY:-}
     depends_on:
       mariadb:
         condition: service_healthy
@@ -18,10 +33,10 @@ services:
   mariadb:
     image: mariadb:11
     environment:
-      MARIADB_ROOT_PASSWORD: rootsecret
-      MARIADB_DATABASE: pulseops
-      MARIADB_USER: pulseops
-      MARIADB_PASSWORD: secret
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-rootsecret}
+      MARIADB_DATABASE: ${DB_DATABASE:-pulseops}
+      MARIADB_USER: ${DB_USERNAME:-pulseops}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-secret}
     volumes:
       - mariadb_data:/var/lib/mysql
     healthcheck:
