@@ -25,7 +25,7 @@
                 <select name="device_id" class="form-select">
                     <option value="">All Devices</option>
                     {% for device in devices %}
-                        <option value="{{ device.id }}" {{ filters.device_id == device.id ? 'selected' }}>{{ device.name|default(device.nayax_device_id) }}</option>
+                        <option value="{{ device.device_id }}" {{ filters.device_id == device.device_id ? 'selected' }}>{{ device.device_name|default(device.device_id) }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -33,10 +33,9 @@
                 <label class="form-label">Payment Type</label>
                 <select name="payment_type" class="form-select">
                     <option value="">All Types</option>
-                    <option value="credit_card" {{ filters.payment_type == 'credit_card' ? 'selected' }}>Credit Card</option>
-                    <option value="debit_card" {{ filters.payment_type == 'debit_card' ? 'selected' }}>Debit Card</option>
-                    <option value="mobile" {{ filters.payment_type == 'mobile' ? 'selected' }}>Mobile Payment</option>
-                    <option value="prepaid" {{ filters.payment_type == 'prepaid' ? 'selected' }}>Prepaid</option>
+                    {% for pt in payment_types %}
+                        <option value="{{ pt.payment_type }}" {{ filters.payment_type == pt.payment_type ? 'selected' }}>{{ pt.payment_type|capitalize }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="col-md-2">

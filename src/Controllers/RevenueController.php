@@ -104,6 +104,18 @@ class RevenueController
             $bindings
         );
 
+        // Summary totals (same filters, no pagination)
+        $summary = $this->db->fetch(
+            "SELECT COALESCE(SUM(r.cash_amount), 0) AS total_cash,
+                    COALESCE(SUM(r.card_amount), 0) AS total_card,
+                    COALESCE(SUM(r.prepaid_amount), 0) AS total_prepaid,
+                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS gross_revenue
+             FROM revenue r
+             LEFT JOIN machines m ON r.machine_id = m.id
+             WHERE {$whereClause}",
+            $bindings
+        );
+
         $machines = $this->db->fetchAll(
             "SELECT id, name, machine_code FROM machines WHERE status = 'active' ORDER BY name"
         );
@@ -112,13 +124,17 @@ class RevenueController
         );
 
         return $this->twig->render($response, 'admin/revenue/index.twig', $this->viewData([
-            'entries' => $entries,
+            'revenue_entries' => $entries,
+            'summary' => $summary,
             'machines' => $machines,
             'customers' => $customers,
             'total' => $total,
-            'page' => $page,
-            'per_page' => $perPage,
-            'total_pages' => (int) ceil($total / $perPage),
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => max(1, (int) ceil($total / $perPage)),
+                'total_count' => $total,
+                'per_page' => $perPage,
+            ],
             'filters' => [
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,

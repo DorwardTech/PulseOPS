@@ -123,19 +123,13 @@
                     <tr>
                         <td>{{ format_date(entry.collection_date) }}</td>
                         <td>
-                            {% if entry.machine %}
-                                <a href="/machines/{{ entry.machine.id }}">{{ entry.machine.name }}</a>
+                            {% if entry.machine_id %}
+                                <a href="/machines/{{ entry.machine_id }}">{{ entry.machine_name|default('Machine #' ~ entry.machine_id) }}</a>
                             {% else %}
                                 --
                             {% endif %}
                         </td>
-                        <td>
-                            {% if entry.customer %}
-                                <a href="/customers/{{ entry.customer.id }}">{{ entry.customer.name }}</a>
-                            {% else %}
-                                --
-                            {% endif %}
-                        </td>
+                        <td>{{ entry.customer_name|default('--') }}</td>
                         <td class="text-end">{{ format_currency(entry.cash_amount) }}</td>
                         <td class="text-end">{{ format_currency(entry.card_amount) }}</td>
                         <td class="text-end fst-italic text-info">{{ format_currency(entry.prepaid_amount) }}</td>

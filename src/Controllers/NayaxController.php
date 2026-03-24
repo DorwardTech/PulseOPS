@@ -282,6 +282,10 @@ class NayaxController
             "SELECT device_id, device_name FROM nayax_devices ORDER BY device_name ASC"
         );
 
+        $paymentTypes = $this->db->fetchAll(
+            "SELECT DISTINCT payment_type FROM nayax_transactions WHERE payment_type IS NOT NULL AND payment_type != '' ORDER BY payment_type"
+        );
+
         return $this->twig->render($response, 'admin/nayax/transactions.twig', [
             'active_page' => 'nayax',
             'auth_user' => $this->auth->user(),
@@ -290,6 +294,7 @@ class NayaxController
             'flash_error' => $flashError,
             'transactions' => $transactions,
             'devices' => $devices,
+            'payment_types' => $paymentTypes,
             'filters' => [
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
