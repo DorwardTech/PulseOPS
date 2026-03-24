@@ -57,19 +57,27 @@
             <div class="card-body">
                 <ul class="commission-breakdown">
                     <li>
+                        <span>Cash Revenue</span>
+                        <span>{{ format_currency(commission.total_cash) }}</span>
+                    </li>
+                    <li>
+                        <span>Card Revenue</span>
+                        <span>{{ format_currency(commission.total_card) }}</span>
+                    </li>
+                    <li class="total">
                         <span>Gross Revenue (Cash + Card)</span>
                         <span>{{ format_currency(commission.gross_revenue) }}</span>
                     </li>
                     <li class="deduction">
-                        <span>Transaction Fees ({{ commission.transaction_count|default(0) }} txns &times; {{ format_currency(commission.processing_fee_per_txn) }})</span>
-                        <span>-{{ format_currency(commission.transaction_fees) }}</span>
+                        <span>Transaction Fees ({{ commission.total_card_transactions|default(0) }} txns &times; {{ format_currency(commission.processing_fee_rate) }})</span>
+                        <span>-{{ format_currency(commission.processing_fees) }}</span>
                     </li>
                     <li class="deduction">
-                        <span>Parts Deduction (Parts &times; {{ commission.parts_rate|default(100) }}%)</span>
+                        <span>Parts Deduction ({{ format_currency(commission.total_parts_cost) }})</span>
                         <span>-{{ format_currency(commission.parts_deduction) }}</span>
                     </li>
                     <li class="deduction">
-                        <span>Labour Deduction (Labour &times; {{ commission.labour_rate|default(100) }}%)</span>
+                        <span>Labour Deduction ({{ format_currency(commission.total_labour_cost) }})</span>
                         <span>-{{ format_currency(commission.labour_deduction) }}</span>
                     </li>
                     <li class="total">
@@ -78,11 +86,11 @@
                     </li>
                     <li>
                         <span>Commission (Net &times; {{ commission.commission_rate }}%)</span>
-                        <span>{{ format_currency(commission.commission_calculated_base) }}</span>
+                        <span>{{ format_currency(commission.base_commission) }}</span>
                     </li>
                     <li>
                         <span>Adjustments</span>
-                        <span>{{ commission.adjustments >= 0 ? '+' : '' }}{{ format_currency(commission.adjustments) }}</span>
+                        <span>{{ commission.adjustments_total >= 0 ? '+' : '' }}{{ format_currency(commission.adjustments_total) }}</span>
                     </li>
                     <li>
                         <span>Carry Forward In</span>
@@ -110,7 +118,7 @@
                 <h6 class="mb-0"><i class="bi bi-wallet2 me-2"></i>Prepaid Usage</h6>
             </div>
             <div class="card-body">
-                <div class="fs-4 fw-bold">{{ format_currency(commission.prepaid_amount) }}</div>
+                <div class="fs-4 fw-bold">{{ format_currency(commission.prepaid_usage) }}</div>
                 <p class="text-muted small mb-0">Tracked separately, managed by operator.</p>
             </div>
         </div>

@@ -35,13 +35,21 @@
                             <th class="text-muted ps-3">Period</th>
                             <td class="text-end pe-3">{{ commission.period_label }}</td>
                         </tr>
+                        <tr>
+                            <th class="text-muted ps-3">Cash Revenue</th>
+                            <td class="text-end pe-3">{{ format_currency(commission.total_cash) }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted ps-3">Card Revenue</th>
+                            <td class="text-end pe-3">{{ format_currency(commission.total_card) }}</td>
+                        </tr>
                         <tr class="table-light">
                             <th class="ps-3">Gross Revenue (Cash + Card)</th>
                             <td class="text-end pe-3 fw-medium">{{ format_currency(commission.gross_revenue) }}</td>
                         </tr>
                         <tr>
-                            <th class="text-muted ps-3"><i class="bi bi-dash me-1"></i>Transaction Fees</th>
-                            <td class="text-end pe-3 text-danger">- {{ format_currency(commission.transaction_fees) }}</td>
+                            <th class="text-muted ps-3"><i class="bi bi-dash me-1"></i>Transaction Fees ({{ commission.total_card_transactions|default(0) }} &times; {{ format_currency(commission.processing_fee_rate) }})</th>
+                            <td class="text-end pe-3 text-danger">- {{ format_currency(commission.processing_fees) }}</td>
                         </tr>
                         <tr>
                             <th class="text-muted ps-3"><i class="bi bi-dash me-1"></i>Parts Deduction</th>
@@ -68,7 +76,7 @@
                         </tr>
                         <tr>
                             <th class="text-muted ps-3">Prepaid (tracked separately)</th>
-                            <td class="text-end pe-3 text-muted">{{ format_currency(commission.prepaid_amount) }}</td>
+                            <td class="text-end pe-3 text-muted">{{ format_currency(commission.prepaid_usage) }}</td>
                         </tr>
                     </tbody>
                 </table>
