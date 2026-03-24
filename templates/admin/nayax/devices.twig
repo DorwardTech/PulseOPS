@@ -69,7 +69,7 @@
                                         <select name="machine_id" class="form-select form-select-sm" required>
                                             <option value="">Select Machine...</option>
                                             {% for machine in machines %}
-                                                <option value="{{ machine.id }}">{{ machine.name }}</option>
+                                                <option value="{{ machine.id }}">{{ machine.name }}{% if machine.machine_code %} ({{ machine.machine_code }}){% endif %}</option>
                                             {% endfor %}
                                         </select>
                                         <button type="submit" class="btn btn-sm btn-primary">
