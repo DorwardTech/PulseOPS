@@ -43,9 +43,15 @@ class LogViewerController
         $lines = min((int) ($params['lines'] ?? 200), self::MAX_LINES);
         $search = $params['search'] ?? '';
 
-        $phpLog = $this->readPhpErrorLog($lines, $search);
-        $apiLogs = $this->getApiLogs($params);
-        $appLogs = $this->getAppLogs($lines, $search);
+        // Only load data for the active tab to avoid unnecessary work
+        $phpLog = ['path' => null, 'entries' => [], 'total_size' => 0, 'source' => 'none'];
+        $apiLogs = ['logs' => [], 'pagination' => ['current_page' => 1, 'total_pages' => 1, 'total_count' => 0, 'per_page' => 50]];
+
+        if ($tab === 'php') {
+            $phpLog = $this->readPhpErrorLog($lines, $search);
+        } elseif ($tab === 'api') {
+            $apiLogs = $this->getApiLogs($params);
+        }
 
         return $this->twig->render($response, 'admin/logs/index.twig', [
             'active_page' => 'logs',
@@ -55,7 +61,6 @@ class LogViewerController
             'php_log' => $phpLog,
             'api_logs' => $apiLogs['logs'],
             'api_pagination' => $apiLogs['pagination'],
-            'app_logs' => $appLogs,
             'lines' => $lines,
             'search' => $search,
             'log_path' => $phpLog['path'] ?? 'not found',
@@ -324,21 +329,4 @@ class LogViewerController
         ];
     }
 
-    /**
-     * Get application-level log entries (error_log calls captured in DB if available).
-     */
-    private function getAppLogs(int $lines, string $search): array
-    {
-        // Check if an app_logs table exists
-        try {
-            $logs = $this->db->fetchAll(
-                "SELECT * FROM app_logs ORDER BY created_at DESC LIMIT ?",
-                [$lines]
-            );
-            return $logs;
-        } catch (\Exception $e) {
-            // Table doesn't exist — that's fine
-            return [];
-        }
-    }
 }

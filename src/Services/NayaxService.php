@@ -328,9 +328,11 @@ class NayaxService
         $all = [];
         $limit = 100;
         $offset = 0;
+        $maxPages = 20; // Safety cap: 2000 machines max
+        $page = 0;
 
         try {
-            while (true) {
+            while ($page < $maxPages) {
                 $params = [
                     'ResultsLimit' => $limit,
                     'ResultsOffset' => $offset,
@@ -361,6 +363,7 @@ class NayaxService
                 }
 
                 $offset += $limit;
+                $page++;
             }
         } catch (\Exception $e) {
             error_log("Nayax fetchAllMachines error: " . $e->getMessage());
