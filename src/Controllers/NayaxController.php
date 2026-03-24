@@ -484,11 +484,11 @@ class NayaxController
                 nt.device_id,
                 nd.machine_id,
                 DATE(nt.transaction_date) as txn_date,
-                SUM(CASE WHEN nt.payment_type IN ('cash', 'coin', 'coins') THEN nt.amount ELSE 0 END) as cash_total,
-                SUM(CASE WHEN nt.payment_type IN ('card', 'creditcard', 'credit card', 'credit', 'debit', 'debitcard', 'visa', 'mastercard', 'cashless') THEN nt.amount ELSE 0 END) as card_total,
-                SUM(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'mifare', 'qr', 'qrcode', 'qr code', 'app') THEN nt.amount ELSE 0 END) as prepaid_total,
-                COUNT(CASE WHEN nt.payment_type IN ('card', 'creditcard', 'credit card', 'credit', 'debit', 'debitcard', 'visa', 'mastercard', 'cashless') THEN 1 END) as card_txn_count,
-                COUNT(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'mifare', 'qr', 'qrcode', 'qr code', 'app') THEN 1 END) as prepaid_txn_count,
+                SUM(CASE WHEN nt.payment_type IN ('cash', 'coin') THEN nt.amount ELSE 0 END) as cash_total,
+                SUM(CASE WHEN nt.payment_type IN ('card') THEN nt.amount ELSE 0 END) as card_total,
+                SUM(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'qr', 'app') THEN nt.amount ELSE 0 END) as prepaid_total,
+                COUNT(CASE WHEN nt.payment_type IN ('card') THEN 1 END) as card_txn_count,
+                COUNT(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'qr', 'app') THEN 1 END) as prepaid_txn_count,
                 GROUP_CONCAT(nt.id) as transaction_ids
              FROM nayax_transactions nt
              JOIN nayax_devices nd ON nd.device_id = nt.device_id
