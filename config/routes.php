@@ -60,6 +60,8 @@ return function (App $app) {
         $group->get('/customers/{id:[0-9]+}', [CustomersController::class, 'show']);
         $group->get('/customers/{id:[0-9]+}/edit', [CustomersController::class, 'edit']);
         $group->post('/customers/{id:[0-9]+}', [CustomersController::class, 'update']);
+        $group->get('/customers/import', [CustomersController::class, 'showImport']);
+        $group->post('/customers/import', [CustomersController::class, 'import']);
         $group->post('/customers/{id:[0-9]+}/delete', [CustomersController::class, 'delete']);
         $group->delete('/customers/{id:[0-9]+}', [CustomersController::class, 'delete']);
         $group->get('/customers/{id:[0-9]+}/portal', [CustomersController::class, 'portalUsers']);

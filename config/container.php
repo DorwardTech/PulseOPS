@@ -9,6 +9,7 @@ use App\Services\Database;
 use App\Services\AuthService;
 use App\Services\SettingsService;
 use App\Services\NayaxService;
+use App\Services\AuditService;
 
 return function (ContainerBuilder $containerBuilder) {
     $containerBuilder->addDefinitions([
@@ -28,6 +29,10 @@ return function (ContainerBuilder $containerBuilder) {
         AuthService::class => function (ContainerInterface $c) {
             $securitySettings = $c->get('settings')['security'] ?? [];
             return new AuthService($c->get(Database::class), $securitySettings);
+        },
+
+        AuditService::class => function (ContainerInterface $c) {
+            return new AuditService($c->get(Database::class), $c->get(AuthService::class));
         },
 
         NayaxService::class => function (ContainerInterface $c) {

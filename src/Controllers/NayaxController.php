@@ -145,8 +145,8 @@ class NayaxController
      */
     public function linkDevice(Request $request, Response $response, array $args = []): Response
     {
+        $deviceId = (int) $args['id'];
         $data = $request->getParsedBody();
-        $deviceId = (int) ($data['device_id'] ?? 0);
         $machineId = (int) ($data['machine_id'] ?? 0);
 
         if ($deviceId <= 0 || $machineId <= 0) {
@@ -154,10 +154,19 @@ class NayaxController
             return $response->withHeader('Location', '/nayax/devices')->withStatus(302);
         }
 
+        $device = $this->db->fetch("SELECT * FROM nayax_devices WHERE id = ?", [$deviceId]);
+        $machine = $this->db->fetch("SELECT id, name FROM machines WHERE id = ?", [$machineId]);
+
         $this->db->update('nayax_devices', [
             'machine_id' => $machineId,
-            'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$deviceId]);
+
+        // Also store the nayax device ID on the machine for reference
+        if ($device && !empty($device['device_id'])) {
+            $this->db->update('machines', [
+                'nayax_device_id' => $device['device_id'],
+            ], 'id = ?', [$machineId]);
+        }
 
         $_SESSION['flash_success'] = 'Device linked to machine successfully.';
         return $response->withHeader('Location', '/nayax/devices')->withStatus(302);

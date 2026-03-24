@@ -8,13 +8,15 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use App\Services\Database;
 use App\Services\AuthService;
+use App\Services\AuditService;
 
 class CustomersController
 {
     public function __construct(
         private Twig $twig,
         private Database $db,
-        private AuthService $auth
+        private AuthService $auth,
+        private AuditService $audit
     ) {}
 
     /**
@@ -135,6 +137,7 @@ class CustomersController
         }
 
         $id = $this->db->insert('customers', $customerData);
+        $this->audit->log('created', 'customer', (int) $id, null, $customerData);
 
         $_SESSION['flash_success'] = 'Customer created successfully.';
         return $response->withHeader('Location', "/customers/{$id}")->withStatus(302);
@@ -292,6 +295,11 @@ class CustomersController
 
         $this->db->update('customers', $customerData, 'id = ?', [$id]);
 
+        $changes = $this->audit->diff($existing, $customerData);
+        if (!empty($changes)) {
+            $this->audit->log('updated', 'customer', $id, $changes);
+        }
+
         $_SESSION['flash_success'] = 'Customer updated successfully.';
         return $response->withHeader('Location', "/customers/{$id}")->withStatus(302);
     }
@@ -303,15 +311,88 @@ class CustomersController
     {
         $id = (int) $args['id'];
 
-        $customer = $this->db->fetch("SELECT id FROM customers WHERE id = ?", [$id]);
+        $customer = $this->db->fetch("SELECT * FROM customers WHERE id = ?", [$id]);
         if (!$customer) {
             $_SESSION['flash_error'] = 'Customer not found.';
             return $response->withHeader('Location', '/customers')->withStatus(302);
         }
 
         $this->db->delete('customers', 'id = ?', [$id]);
+        $this->audit->log('deleted', 'customer', $id, $customer);
 
         $_SESSION['flash_success'] = 'Customer deleted successfully.';
+        return $response->withHeader('Location', '/customers')->withStatus(302);
+    }
+
+    /**
+     * Show CSV import form.
+     */
+    public function showImport(Request $request, Response $response): Response
+    {
+        return $this->twig->render($response, 'admin/customers/import.twig', $this->viewData());
+    }
+
+    /**
+     * Process CSV import of customers.
+     */
+    public function import(Request $request, Response $response): Response
+    {
+        $uploadedFiles = $request->getUploadedFiles();
+        $csvFile = $uploadedFiles['csv_file'] ?? null;
+
+        if (!$csvFile || $csvFile->getError() !== UPLOAD_ERR_OK) {
+            $_SESSION['flash_error'] = 'Please upload a valid CSV file.';
+            return $response->withHeader('Location', '/customers/import')->withStatus(302);
+        }
+
+        $stream = $csvFile->getStream();
+        $content = (string) $stream;
+        $lines = array_filter(explode("\n", $content));
+
+        if (count($lines) < 2) {
+            $_SESSION['flash_error'] = 'CSV file is empty or has no data rows.';
+            return $response->withHeader('Location', '/customers/import')->withStatus(302);
+        }
+
+        $headers = str_getcsv(array_shift($lines));
+        $headers = array_map('trim', $headers);
+        $headers = array_map('strtolower', $headers);
+
+        $imported = 0;
+        $errors = 0;
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') continue;
+
+            $row = str_getcsv($line);
+            $record = array_combine($headers, $row);
+            if ($record === false) { $errors++; continue; }
+
+            try {
+                $id = $this->db->insert('customers', [
+                    'name' => trim($record['name'] ?? ''),
+                    'contact_name' => trim($record['contact_name'] ?? ''),
+                    'email' => trim($record['email'] ?? ''),
+                    'phone' => trim($record['phone'] ?? ''),
+                    'mobile' => trim($record['mobile'] ?? ''),
+                    'address_line1' => trim($record['address_line1'] ?? $record['address'] ?? ''),
+                    'city' => trim($record['city'] ?? $record['suburb'] ?? ''),
+                    'state' => trim($record['state'] ?? ''),
+                    'postcode' => trim($record['postcode'] ?? ''),
+                    'country' => trim($record['country'] ?? 'Australia'),
+                    'abn' => trim($record['abn'] ?? ''),
+                    'commission_rate' => !empty($record['commission_rate']) ? (float) $record['commission_rate'] : null,
+                    'is_active' => 1,
+                ]);
+                $this->audit->log('created', 'customer', (int) $id, null, ['source' => 'csv_import']);
+                $imported++;
+            } catch (\Exception $e) {
+                $errors++;
+            }
+        }
+
+        $_SESSION['flash_success'] = "Import complete: {$imported} customers imported, {$errors} errors.";
         return $response->withHeader('Location', '/customers')->withStatus(302);
     }
 
