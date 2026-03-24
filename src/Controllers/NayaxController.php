@@ -580,6 +580,44 @@ class NayaxController
     }
 
     /**
+     * Diagnostic: show distinct PaymentMethod and RecognitionMethod values from raw_data.
+     */
+    public function diagnostics(Request $request, Response $response, array $args = []): Response
+    {
+        $recognition = $this->db->fetchAll(
+            "SELECT LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) AS val, COUNT(*) AS cnt
+             FROM nayax_transactions WHERE raw_data IS NOT NULL
+             GROUP BY val ORDER BY cnt DESC"
+        );
+
+        $payment = $this->db->fetchAll(
+            "SELECT LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) AS val, COUNT(*) AS cnt
+             FROM nayax_transactions WHERE raw_data IS NOT NULL
+             GROUP BY val ORDER BY cnt DESC"
+        );
+
+        $currentTypes = $this->db->fetchAll(
+            "SELECT payment_type, COUNT(*) AS cnt, SUM(amount) AS total
+             FROM nayax_transactions GROUP BY payment_type ORDER BY cnt DESC"
+        );
+
+        $revenueCheck = $this->db->fetchAll(
+            "SELECT source, COUNT(*) AS cnt, SUM(prepaid_amount) AS prepaid_total, SUM(card_amount) AS card_total, SUM(cash_amount) AS cash_total
+             FROM revenue GROUP BY source"
+        );
+
+        $payload = [
+            'recognition_methods' => $recognition,
+            'payment_methods' => $payment,
+            'current_payment_types' => $currentTypes,
+            'revenue_by_source' => $revenueCheck,
+        ];
+
+        $response->getBody()->write(json_encode($payload, JSON_PRETTY_PRINT));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
      * Re-derive payment_type from raw_data JSON for all nayax transactions.
      * Uses bulk SQL with JSON_EXTRACT to avoid loading all rows into PHP.
      */
