@@ -193,7 +193,7 @@ class JobsController
 
         $job = $this->db->fetch(
             "SELECT j.*, js.name AS status_name, js.color AS status_color,
-                    m.name AS machine_name, m.machine_code, m.location,
+                    m.name AS machine_name, m.machine_code, m.location_details,
                     c.name AS customer_name, c.business_name,
                     u.full_name AS assigned_user_name
              FROM maintenance_jobs j

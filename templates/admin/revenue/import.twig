@@ -1,0 +1,42 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Import Revenue{% endblock %}
+{% block page_title %}Import Revenue{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-upload me-2"></i>Import Revenue from CSV</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-info d-flex align-items-start mb-4">
+                    <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+                    <div>
+                        <strong>CSV Format:</strong> The first row must contain column headers. Supported columns:
+                        <code>machine_id</code>, <code>collection_date</code>, <code>cash_amount</code>,
+                        <code>card_amount</code>, <code>prepaid_amount</code>, <code>card_transactions</code>,
+                        <code>prepaid_transactions</code>, <code>cash_source</code>.
+                    </div>
+                </div>
+
+                <form method="POST" action="/revenue/import" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                    <div class="mb-4">
+                        <label for="csv_file" class="form-label">CSV File <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv,text/csv" required>
+                        <div class="form-text">Upload a .csv file with revenue data.</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="/revenue" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload me-1"></i> Import Revenue
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

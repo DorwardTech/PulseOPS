@@ -215,7 +215,7 @@ class AnalyticsController
 
         // Revenue per machine
         $machineRevenue = $this->db->fetchAll(
-            "SELECT m.id, m.name, m.machine_code, m.status, m.location,
+            "SELECT m.id, m.name, m.machine_code, m.status, m.location_details,
                     c.name AS customer_name,
                     COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue,
                     COALESCE(SUM(r.cash_amount), 0) AS cash_total,
@@ -226,7 +226,7 @@ class AnalyticsController
              LEFT JOIN customers c ON m.customer_id = c.id
              LEFT JOIN revenue r ON m.id = r.machine_id
                  AND r.collection_date BETWEEN ? AND ?
-             GROUP BY m.id, m.name, m.machine_code, m.status, m.location, c.name
+             GROUP BY m.id, m.name, m.machine_code, m.status, m.location_details, c.name
              ORDER BY total_revenue DESC",
             [$dateFrom, $dateTo]
         );

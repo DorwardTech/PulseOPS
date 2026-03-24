@@ -524,7 +524,7 @@ class PortalController
 
         $job = $this->db->fetch(
             "SELECT j.*, js.name AS status_name, js.color AS status_color,
-                    m.name AS machine_name, m.machine_code, m.location
+                    m.name AS machine_name, m.machine_code, m.location_details
              FROM maintenance_jobs j
              LEFT JOIN job_statuses js ON j.status_id = js.id
              LEFT JOIN machines m ON j.machine_id = m.id

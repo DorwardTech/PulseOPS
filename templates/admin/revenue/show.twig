@@ -1,0 +1,109 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Revenue Entry #{{ entry.id }}{% endblock %}
+{% block page_title %}Revenue Entry #{{ entry.id }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        {% if entry.status == 'verified' or entry.status == 'approved' %}
+            <span class="badge bg-success">{{ entry.status|capitalize }}</span>
+        {% else %}
+            <span class="badge bg-warning text-dark">{{ entry.status|capitalize }}</span>
+        {% endif %}
+    </div>
+    <div>
+        <a href="/revenue/{{ entry.id }}/edit" class="btn btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i> Edit
+        </a>
+        {% if entry.status == 'pending' %}
+        <form method="POST" action="/revenue/{{ entry.id }}/approve" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle me-1"></i> Approve
+            </button>
+        </form>
+        {% endif %}
+        <a href="/revenue" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent"><h6 class="mb-0">Revenue Details</h6></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Collection Date</dt>
+                    <dd class="col-sm-7">{{ entry.collection_date }}</dd>
+                    <dt class="col-sm-5">Machine</dt>
+                    <dd class="col-sm-7">
+                        {% if entry.machine_name %}
+                            <a href="/machines/{{ entry.machine_id }}">{{ entry.machine_code }} - {{ entry.machine_name }}</a>
+                        {% else %}
+                            --
+                        {% endif %}
+                    </dd>
+                    <dt class="col-sm-5">Customer</dt>
+                    <dd class="col-sm-7">{{ entry.customer_name|default('--') }}</dd>
+                    <dt class="col-sm-5">Source</dt>
+                    <dd class="col-sm-7"><span class="badge bg-{{ entry.source == 'nayax' ? 'info' : 'secondary' }}">{{ entry.source }}</span></dd>
+                    <dt class="col-sm-5">Cash Source</dt>
+                    <dd class="col-sm-7">{{ entry.cash_source|default('--') }}</dd>
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if entry.status == 'verified' or entry.status == 'approved' %}
+                            <span class="badge bg-success">{{ entry.status|capitalize }}</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">{{ entry.status|capitalize }}</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent"><h6 class="mb-0">Amounts</h6></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Cash Amount</dt>
+                    <dd class="col-sm-7 text-success fw-bold">${{ entry.cash_amount|number_format(2) }}</dd>
+                    <dt class="col-sm-5">Card Amount</dt>
+                    <dd class="col-sm-7 text-primary fw-bold">${{ entry.card_amount|number_format(2) }}</dd>
+                    <dt class="col-sm-5 fst-italic text-info">Prepaid Amount</dt>
+                    <dd class="col-sm-7 fst-italic text-info">${{ entry.prepaid_amount|number_format(2) }}</dd>
+                    <dt class="col-sm-5 border-top pt-2 mt-2">Gross Revenue</dt>
+                    <dd class="col-sm-7 border-top pt-2 mt-2 fw-bold fs-5">${{ (entry.cash_amount + entry.card_amount)|number_format(2) }}</dd>
+                </dl>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent"><h6 class="mb-0">Transactions &amp; Audit</h6></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Card Transactions</dt>
+                    <dd class="col-sm-7">{{ entry.card_transactions|default(0) }}</dd>
+                    <dt class="col-sm-5">Prepaid Transactions</dt>
+                    <dd class="col-sm-7">{{ entry.prepaid_transactions|default(0) }}</dd>
+                    <dt class="col-sm-5">Created By</dt>
+                    <dd class="col-sm-7">{{ entry.created_by_name|default('--') }}</dd>
+                    <dt class="col-sm-5">Approved By</dt>
+                    <dd class="col-sm-7">{{ entry.approved_by_name|default('--') }}</dd>
+                    <dt class="col-sm-5">Created At</dt>
+                    <dd class="col-sm-7">{{ entry.created_at|default('--') }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if entry.notes %}
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-transparent"><h6 class="mb-0">Notes</h6></div>
+    <div class="card-body">
+        <p class="mb-0">{{ entry.notes }}</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

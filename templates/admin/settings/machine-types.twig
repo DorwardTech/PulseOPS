@@ -1,0 +1,24 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Machine Types{% endblock %}
+{% block page_title %}Machine Type Management{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th>Name</th><th>Description</th><th>Icon</th><th>Status</th></tr></thead>
+                <tbody>
+                {% for type in machine_types %}
+                <tr>
+                    <td>{{ type.name }}</td>
+                    <td>{{ type.description ?? '-' }}</td>
+                    <td>{{ type.icon ?? '-' }}</td>
+                    <td>{% if type.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

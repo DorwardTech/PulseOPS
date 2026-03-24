@@ -41,26 +41,23 @@ class SettingsService
         $stringValue = is_array($value) || is_object($value) ? json_encode($value) : (string) $value;
 
         $existing = $this->db->fetch(
-            "SELECT id FROM settings WHERE `key` = ?",
+            "SELECT id FROM settings WHERE setting_key = ?",
             [$key]
         );
 
         if ($existing) {
             $data = [
-                'value' => $stringValue,
-                'updated_at' => date('Y-m-d H:i:s'),
+                'setting_value' => $stringValue,
             ];
             if ($type !== null) {
-                $data['type'] = $type;
+                $data['setting_type'] = $type;
             }
             $this->db->update('settings', $data, 'id = ?', [$existing['id']]);
         } else {
             $data = [
-                'key' => $key,
-                'value' => $stringValue,
-                'type' => $type ?? 'string',
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
+                'setting_key' => $key,
+                'setting_value' => $stringValue,
+                'setting_type' => $type ?? 'string',
             ];
             $this->db->insert('settings', $data);
         }
@@ -75,13 +72,13 @@ class SettingsService
     public function getByCategory(string $category): array
     {
         $rows = $this->db->fetchAll(
-            "SELECT `key`, value, type FROM settings WHERE category = ?",
+            "SELECT setting_key, setting_value, setting_type FROM settings WHERE category = ?",
             [$category]
         );
 
         $result = [];
         foreach ($rows as $row) {
-            $result[$row['key']] = $this->castValue($row['value'], $row['type'] ?? 'string');
+            $result[$row['setting_key']] = $this->castValue($row['setting_value'], $row['setting_type'] ?? 'string');
         }
 
         return $result;
@@ -115,11 +112,11 @@ class SettingsService
             return;
         }
 
-        $rows = $this->db->fetchAll("SELECT `key`, value, type FROM settings");
+        $rows = $this->db->fetchAll("SELECT setting_key, setting_value, setting_type FROM settings");
 
         $this->cache = [];
         foreach ($rows as $row) {
-            $this->cache[$row['key']] = $this->castValue($row['value'], $row['type'] ?? 'string');
+            $this->cache[$row['setting_key']] = $this->castValue($row['setting_value'], $row['setting_type'] ?? 'string');
         }
     }
 

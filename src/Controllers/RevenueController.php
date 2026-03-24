@@ -166,7 +166,7 @@ class RevenueController
             'source' => trim((string) ($data['source'] ?? 'manual')),
             'notes' => trim((string) ($data['notes'] ?? '')),
             'status' => $data['status'] ?? 'pending',
-            'created_by' => $authUser['id'] ?? null,
+            'collected_by' => $authUser['id'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ];
@@ -197,7 +197,7 @@ class RevenueController
              FROM revenue r
              LEFT JOIN machines m ON r.machine_id = m.id
              LEFT JOIN customers c ON m.customer_id = c.id
-             LEFT JOIN users u ON r.created_by = u.id
+             LEFT JOIN users u ON r.collected_by = u.id
              LEFT JOIN users ua ON r.approved_by = ua.id
              WHERE r.id = ?",
             [$id]
@@ -417,7 +417,7 @@ class RevenueController
                     'cash_source' => trim($record['cash_source'] ?? ''),
                     'source' => 'csv_import',
                     'status' => 'pending',
-                    'created_by' => $authUser['id'] ?? null,
+                    'collected_by' => $authUser['id'] ?? null,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ]);

@@ -1,0 +1,202 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Revenue Analytics{% endblock %}
+{% block page_title %}Revenue Analytics{% endblock %}
+{% block content %}
+<!-- Date Range Filter -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="/analytics/revenue" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+            <div class="col-md-3">
+                <a href="/analytics/export?type=revenue&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-download me-1"></i> Export CSV
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Totals Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1">Total Revenue</div>
+                <h4 class="mb-0">${{ totals.total_revenue|number_format(2) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1">Cash Total</div>
+                <h4 class="mb-0 text-success">${{ totals.cash_total|number_format(2) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1">Card Total</div>
+                <h4 class="mb-0 text-primary">${{ totals.card_total|number_format(2) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1">Collections</div>
+                <h4 class="mb-0">{{ totals.collection_count }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Revenue by Month Chart -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent">
+        <h6 class="mb-0">Revenue by Month</h6>
+    </div>
+    <div class="card-body">
+        <canvas id="revenueByMonthChart" height="300"></canvas>
+    </div>
+</div>
+
+<!-- Revenue by Machine -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent">
+        <h6 class="mb-0">Revenue by Machine</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Machine</th>
+                        <th class="text-end">Cash</th>
+                        <th class="text-end">Card</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-center">Collections</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in by_machine %}
+                    <tr>
+                        <td><a href="/machines/{{ row.id }}">{{ row.machine_code }} - {{ row.name }}</a></td>
+                        <td class="text-end">${{ row.cash_total|number_format(2) }}</td>
+                        <td class="text-end">${{ row.card_total|number_format(2) }}</td>
+                        <td class="text-end fw-bold">${{ row.total_revenue|number_format(2) }}</td>
+                        <td class="text-center">{{ row.collection_count }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No data available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Revenue by Customer -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent">
+        <h6 class="mb-0">Revenue by Customer</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Customer</th>
+                        <th class="text-end">Cash</th>
+                        <th class="text-end">Card</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-center">Collections</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in by_customer %}
+                    <tr>
+                        <td><a href="/customers/{{ row.id }}">{{ row.name }}</a></td>
+                        <td class="text-end">${{ row.cash_total|number_format(2) }}</td>
+                        <td class="text-end">${{ row.card_total|number_format(2) }}</td>
+                        <td class="text-end fw-bold">${{ row.total_revenue|number_format(2) }}</td>
+                        <td class="text-center">{{ row.collection_count }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No data available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const labels = {{ by_month|map(m => m.period)|json_encode|raw }};
+    const cashData = {{ by_month|map(m => m.cash_total)|json_encode|raw }};
+    const cardData = {{ by_month|map(m => m.card_total)|json_encode|raw }};
+
+    new Chart(document.getElementById('revenueByMonthChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Cash',
+                    data: cashData,
+                    backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Card',
+                    data: cardData,
+                    backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { stacked: true },
+                y: {
+                    stacked: true,
+                    ticks: {
+                        callback: function(value) { return '$' + value.toLocaleString(); }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

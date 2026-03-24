@@ -1,0 +1,24 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Roles{% endblock %}
+{% block page_title %}Role Management{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th>Name</th><th>Slug</th><th>Description</th><th>System</th></tr></thead>
+                <tbody>
+                {% for role in roles %}
+                <tr>
+                    <td>{{ role.name }}</td>
+                    <td><code>{{ role.slug }}</code></td>
+                    <td>{{ role.description ?? '-' }}</td>
+                    <td>{% if role.is_system %}<span class="badge bg-info">System</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

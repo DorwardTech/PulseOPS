@@ -1,0 +1,32 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Machine Analytics{% endblock %}
+{% block page_title %}Machine Analytics{% endblock %}
+{% block content %}
+<div class="row g-4">
+    {% if top_machines is defined and top_machines %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">Top Performing Machines</h5></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead><tr><th>Machine</th><th>Code</th><th>Location</th><th class="text-end">Revenue</th><th class="text-end">Collections</th></tr></thead>
+                        <tbody>
+                        {% for m in top_machines %}
+                        <tr>
+                            <td>{{ m.name }}</td>
+                            <td><code>{{ m.machine_code }}</code></td>
+                            <td>{{ m.location_details ?? '-' }}</td>
+                            <td class="text-end">${{ m.total_revenue|number_format(2) }}</td>
+                            <td class="text-end">{{ m.collection_count }}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -213,18 +213,18 @@ class CommissionsController
             'customer_id' => $customerId,
             'period_start' => $periodStart,
             'period_end' => $periodEnd,
-            'total_revenue' => $result['total_revenue'],
+            'gross_revenue' => $result['total_revenue'],
             'total_cash' => $result['total_cash'],
             'total_card' => $result['total_card'],
             'total_prepaid' => $result['total_prepaid'] ?? 0,
             'commission_rate' => $commissionRate,
             'commission_amount' => $result['commission_amount'],
             'processing_fee_rate' => $processingFee,
-            'processing_fee_amount' => $result['processing_fee_amount'],
-            'job_costs' => $result['total_job_costs'],
+            'processing_fees' => $result['processing_fee_amount'],
+            'total_parts_cost' => $result['total_job_costs'],
             'carry_forward_in' => $carryForward,
             'carry_forward_out' => $result['carry_forward_out'] ?? 0,
-            'net_amount' => $result['net_amount'],
+            'net_revenue' => $result['net_amount'],
             'status' => 'draft',
             'generated_by' => $authUser['id'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
@@ -235,7 +235,7 @@ class CommissionsController
         if (!empty($result['line_items'])) {
             foreach ($result['line_items'] as $item) {
                 $this->db->insert('commission_line_items', [
-                    'commission_payment_id' => $commissionId,
+                    'commission_id' => $commissionId,
                     'machine_id' => $item['machine_id'] ?? null,
                     'description' => $item['description'] ?? '',
                     'amount' => $item['amount'] ?? 0,
@@ -285,7 +285,7 @@ class CommissionsController
             "SELECT cli.*, m.name AS machine_name, m.machine_code
              FROM commission_line_items cli
              LEFT JOIN machines m ON cli.machine_id = m.id
-             WHERE cli.commission_payment_id = ?
+             WHERE cli.commission_id = ?
              ORDER BY cli.type, cli.created_at",
             [$id]
         );
@@ -415,7 +415,7 @@ class CommissionsController
         }
 
         $this->db->insert('commission_line_items', [
-            'commission_payment_id' => $id,
+            'commission_id' => $id,
             'machine_id' => !empty($data['machine_id']) ? (int) $data['machine_id'] : null,
             'description' => $description,
             'amount' => $amount,
@@ -439,7 +439,7 @@ class CommissionsController
         $lineItemId = (int) $args['line_item_id'];
 
         $lineItem = $this->db->fetch(
-            "SELECT id FROM commission_line_items WHERE id = ? AND commission_payment_id = ?",
+            "SELECT id FROM commission_line_items WHERE id = ? AND commission_id = ?",
             [$lineItemId, $id]
         );
 
@@ -525,24 +525,24 @@ class CommissionsController
         $adjustments = $this->db->fetchColumn(
             "SELECT COALESCE(SUM(amount), 0)
              FROM commission_line_items
-             WHERE commission_payment_id = ? AND type = 'adjustment'",
+             WHERE commission_id = ? AND type = 'adjustment'",
             [$id]
         );
 
         $netAmount = $result['net_amount'] + (float) $adjustments;
 
         $this->db->update('commission_payments', [
-            'total_revenue' => $result['total_revenue'],
+            'gross_revenue' => $result['total_revenue'],
             'total_cash' => $result['total_cash'],
             'total_card' => $result['total_card'],
             'total_prepaid' => $result['total_prepaid'] ?? 0,
             'commission_rate' => $commissionRate,
             'commission_amount' => $result['commission_amount'],
             'processing_fee_rate' => $processingFee,
-            'processing_fee_amount' => $result['processing_fee_amount'],
-            'job_costs' => $result['total_job_costs'],
+            'processing_fees' => $result['processing_fee_amount'],
+            'total_parts_cost' => $result['total_job_costs'],
             'carry_forward_out' => $result['carry_forward_out'] ?? 0,
-            'net_amount' => $netAmount,
+            'net_revenue' => $netAmount,
             'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$id]);
 
@@ -571,19 +571,19 @@ class CommissionsController
         $adjustments = (float) $this->db->fetchColumn(
             "SELECT COALESCE(SUM(amount), 0)
              FROM commission_line_items
-             WHERE commission_payment_id = ? AND type = 'adjustment'",
+             WHERE commission_id = ? AND type = 'adjustment'",
             [$commissionId]
         );
 
         $baseNet = (float) ($commission['commission_amount'] ?? 0)
-            - (float) ($commission['processing_fee_amount'] ?? 0)
-            - (float) ($commission['job_costs'] ?? 0)
+            - (float) ($commission['processing_fees'] ?? 0)
+            - (float) ($commission['total_parts_cost'] ?? 0)
             + (float) ($commission['carry_forward_in'] ?? 0);
 
         $netAmount = $baseNet + $adjustments;
 
         $this->db->update('commission_payments', [
-            'net_amount' => $netAmount,
+            'net_revenue' => $netAmount,
             'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$commissionId]);
     }
