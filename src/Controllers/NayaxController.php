@@ -10,6 +10,7 @@ use App\Services\Database;
 use App\Services\AuthService;
 use App\Services\NayaxService;
 use App\Services\SettingsService;
+use App\Services\AuditService;
 
 class NayaxController
 {
@@ -18,7 +19,8 @@ class NayaxController
         private Database $db,
         private AuthService $auth,
         private NayaxService $nayax,
-        private SettingsService $settings
+        private SettingsService $settings,
+        private AuditService $audit
     ) {}
 
     /**
@@ -168,6 +170,12 @@ class NayaxController
             ], 'id = ?', [$machineId]);
         }
 
+        // Log on the machine so it shows in machine history
+        $this->audit->log('nayax_device_linked', 'machine', $machineId, [
+            'nayax_device_id' => ['from' => null, 'to' => $device['device_id'] ?? $deviceId],
+            'nayax_device_name' => ['from' => null, 'to' => $device['actor_name'] ?? $device['device_id'] ?? ''],
+        ]);
+
         $_SESSION['flash_success'] = 'Device linked to machine successfully.';
         return $response->withHeader('Location', '/nayax/devices')->withStatus(302);
     }
@@ -179,10 +187,23 @@ class NayaxController
     {
         $deviceId = (int) $args['id'];
 
+        $device = $this->db->fetch("SELECT * FROM nayax_devices WHERE id = ?", [$deviceId]);
+        $oldMachineId = $device['machine_id'] ?? null;
+
         $this->db->update('nayax_devices', [
             'machine_id' => null,
             'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$deviceId]);
+
+        // Clear nayax_device_id on the machine
+        if ($oldMachineId) {
+            $this->db->update('machines', ['nayax_device_id' => null], 'id = ?', [$oldMachineId]);
+
+            $this->audit->log('nayax_device_unlinked', 'machine', (int) $oldMachineId, [
+                'nayax_device_id' => ['from' => $device['device_id'] ?? $deviceId, 'to' => null],
+                'nayax_device_name' => ['from' => $device['actor_name'] ?? '', 'to' => null],
+            ]);
+        }
 
         $_SESSION['flash_success'] = 'Device unlinked from machine.';
         return $response->withHeader('Location', '/nayax/devices')->withStatus(302);

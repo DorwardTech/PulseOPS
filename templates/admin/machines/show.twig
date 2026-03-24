@@ -39,6 +39,11 @@
     <li class="nav-item">
         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#photos" type="button">Photos</button>
     </li>
+    {% if nayax_device %}
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nayax" type="button">Nayax</button>
+    </li>
+    {% endif %}
     <li class="nav-item">
         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#history" type="button">History</button>
     </li>
@@ -244,6 +249,144 @@
         </div>
     </div>
 
+    <!-- Nayax Tab -->
+    {% if nayax_device %}
+    <div class="tab-pane fade" id="nayax">
+        <!-- Status & Version -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent"><h6 class="mb-0">Device Status</h6></div>
+                    <div class="card-body text-center">
+                        {% if nayax_device.device_status == 'online' or nayax_device.device_status == '1' %}
+                            <span class="badge bg-success fs-6 mb-2">Online</span>
+                        {% else %}
+                            <span class="badge bg-danger fs-6 mb-2">Offline</span>
+                        {% endif %}
+                        <p class="text-muted small mb-0">Last Communication: {{ nayax_device.last_communication ? format_datetime(nayax_device.last_communication) : 'Never' }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent"><h6 class="mb-0">Device Version</h6></div>
+                    <div class="card-body text-center">
+                        <span class="fs-5 fw-bold">{{ nayax_device.firmware_version|default('--') }}</span>
+                        <p class="text-muted small mb-0">Firmware Version</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hardware Details -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent"><h6 class="mb-0"><i class="bi bi-cpu me-2"></i>Hardware</h6></div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5">Nayax Machine ID</dt>
+                            <dd class="col-sm-7">{{ nayax_device.nayax_device_id|default('--') }}</dd>
+                            <dt class="col-sm-5">Device ID</dt>
+                            <dd class="col-sm-7">{{ nayax_device.device_id|default('--') }}</dd>
+                            <dt class="col-sm-5">Device Serial</dt>
+                            <dd class="col-sm-7">{{ nayax_device.device_serial|default('--') }}</dd>
+                            <dt class="col-sm-5">Device Model</dt>
+                            <dd class="col-sm-7">{{ nayax_device.device_model|default('--') }}</dd>
+                            <dt class="col-sm-5">Device Name</dt>
+                            <dd class="col-sm-7">{{ nayax_device.device_name|default('--') }}</dd>
+                            <dt class="col-sm-5">Smart Sticker ID</dt>
+                            <dd class="col-sm-7">{{ nayax_device.smart_sticker_id|default('--') }}</dd>
+                            <dt class="col-sm-5">VPOS</dt>
+                            <dd class="col-sm-7">{{ nayax_device.vpos_id|default('--') }}</dd>
+                            <dt class="col-sm-5">Cash Box ID</dt>
+                            <dd class="col-sm-7">{{ nayax_device.cash_box_id|default('--') }}</dd>
+                            <dt class="col-sm-5">Last Synced</dt>
+                            <dd class="col-sm-7">{{ nayax_device.last_sync_at ? format_datetime(nayax_device.last_sync_at) : 'Never' }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location -->
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent"><h6 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Location</h6></div>
+                    <div class="card-body">
+                        {% if nayax_device.latitude and nayax_device.longitude %}
+                            <div class="mb-3" style="height: 250px; border-radius: 8px; overflow: hidden;">
+                                <iframe
+                                    width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0"
+                                    src="https://www.openstreetmap.org/export/embed.html?bbox={{ nayax_device.longitude - 0.005 }}%2C{{ nayax_device.latitude - 0.005 }}%2C{{ nayax_device.longitude + 0.005 }}%2C{{ nayax_device.latitude + 0.005 }}&layer=mapnik&marker={{ nayax_device.latitude }}%2C{{ nayax_device.longitude }}"
+                                    style="border: 0;">
+                                </iframe>
+                            </div>
+                            <p class="small text-muted mb-0">
+                                <i class="bi bi-geo me-1"></i>{{ nayax_device.latitude }}, {{ nayax_device.longitude }}
+                            </p>
+                        {% else %}
+                            <p class="text-muted mb-0">No GPS coordinates available.</p>
+                            {% if machine.location_details %}
+                                <p class="mt-2 mb-0"><strong>Location:</strong> {{ machine.location_details }}</p>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Recent Transactions</h6>
+                <a href="/nayax/transactions?device_id={{ nayax_device.device_id }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date/Time</th>
+                                <th>Transaction ID</th>
+                                <th>Payment Type</th>
+                                <th class="text-end">Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for txn in nayax_transactions %}
+                            <tr>
+                                <td class="text-nowrap">{{ format_datetime(txn.transaction_date) }}</td>
+                                <td><code>{{ txn.transaction_id }}</code></td>
+                                <td>
+                                    {% if txn.payment_type == 'card' or txn.payment_type == 'credit' %}
+                                        <span class="badge bg-primary">Card</span>
+                                    {% elseif txn.payment_type == 'cash' %}
+                                        <span class="badge bg-success">Cash</span>
+                                    {% elseif txn.payment_type == 'prepaid' %}
+                                        <span class="badge bg-info">Prepaid</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ txn.payment_type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end fw-bold">{{ format_currency(txn.amount) }}</td>
+                                <td>
+                                    <span class="badge bg-{{ txn.status == 'completed' ? 'success' : 'warning' }}">{{ txn.status }}</span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No transactions found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- History Tab -->
     <div class="tab-pane fade" id="history">
         <div class="card border-0 shadow-sm">
@@ -273,8 +416,12 @@
                                         <span class="badge bg-primary">Updated</span>
                                     {% elseif log.action == 'deleted' %}
                                         <span class="badge bg-danger">Deleted</span>
+                                    {% elseif log.action == 'nayax_device_linked' %}
+                                        <span class="badge bg-info">Nayax Linked</span>
+                                    {% elseif log.action == 'nayax_device_unlinked' %}
+                                        <span class="badge bg-warning text-dark">Nayax Unlinked</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">{{ log.action }}</span>
+                                        <span class="badge bg-secondary">{{ log.action|replace({'_': ' '})|title }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
