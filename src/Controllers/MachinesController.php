@@ -227,12 +227,30 @@ class MachinesController
         }
         unset($log);
 
+        // Nayax device linked to this machine
+        $nayaxDevice = $this->db->fetch(
+            "SELECT * FROM nayax_devices WHERE machine_id = ? LIMIT 1",
+            [$id]
+        );
+
+        $nayaxTransactions = [];
+        if ($nayaxDevice) {
+            $nayaxTransactions = $this->db->fetchAll(
+                "SELECT * FROM nayax_transactions
+                 WHERE device_id = ?
+                 ORDER BY transaction_date DESC LIMIT 25",
+                [$nayaxDevice['device_id']]
+            );
+        }
+
         return $this->twig->render($response, 'admin/machines/show.twig', $this->viewData([
             'machine' => $machine,
             'revenue_history' => $revenueHistory,
             'photos' => $photos,
             'jobs' => $jobs,
             'activity_logs' => $activityLogs,
+            'nayax_device' => $nayaxDevice,
+            'nayax_transactions' => $nayaxTransactions,
         ]));
     }
 
