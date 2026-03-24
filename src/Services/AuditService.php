@@ -66,15 +66,20 @@ class AuditService
      */
     public function getLogsForEntity(string $entityType, int $entityId, int $limit = 50): array
     {
-        return $this->db->fetchAll(
-            "SELECT al.*, u.full_name AS user_name
-             FROM activity_logs al
-             LEFT JOIN users u ON al.user_id = u.id
-             WHERE al.entity_type = ? AND al.entity_id = ?
-             ORDER BY al.created_at DESC
-             LIMIT {$limit}",
-            [$entityType, $entityId]
-        );
+        try {
+            return $this->db->fetchAll(
+                "SELECT al.*, u.full_name AS user_name
+                 FROM activity_logs al
+                 LEFT JOIN users u ON al.user_id = u.id
+                 WHERE al.entity_type = ? AND al.entity_id = ?
+                 ORDER BY al.created_at DESC
+                 LIMIT {$limit}",
+                [$entityType, $entityId]
+            );
+        } catch (\Exception $e) {
+            error_log("AuditService getLogsForEntity error: " . $e->getMessage());
+            return [];
+        }
     }
 
     /**
@@ -82,12 +87,17 @@ class AuditService
      */
     public function getRecentLogs(int $limit = 100): array
     {
-        return $this->db->fetchAll(
-            "SELECT al.*, u.full_name AS user_name
-             FROM activity_logs al
-             LEFT JOIN users u ON al.user_id = u.id
-             ORDER BY al.created_at DESC
-             LIMIT {$limit}"
-        );
+        try {
+            return $this->db->fetchAll(
+                "SELECT al.*, u.full_name AS user_name
+                 FROM activity_logs al
+                 LEFT JOIN users u ON al.user_id = u.id
+                 ORDER BY al.created_at DESC
+                 LIMIT {$limit}"
+            );
+        } catch (\Exception $e) {
+            error_log("AuditService getRecentLogs error: " . $e->getMessage());
+            return [];
+        }
     }
 }

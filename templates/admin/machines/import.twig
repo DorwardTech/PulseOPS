@@ -12,8 +12,9 @@
                 <div class="alert alert-info d-flex align-items-start mb-4">
                     <i class="bi bi-info-circle-fill me-2 mt-1"></i>
                     <div>
-                        <strong>CSV Format:</strong> The CSV file should include a header row with the following columns:
-                        <code>machine_code, name, customer_id, machine_type_id, description, location_details, status, serial_number, manufacturer, model</code>
+                        <strong>CSV Format:</strong> The CSV file should include a header row. Required: <code>machine_code, name</code>.
+                        Optional: <code>customer</code> (name), <code>machine_type</code> (name), <code>description, location_details, status</code> (active/maintenance/inactive/in_storage), <code>serial_number, manufacturer, model</code>.
+                        <br><small class="text-muted">You can use customer and machine type names instead of IDs. IDs are also accepted.</small>
                     </div>
                 </div>
 
@@ -44,9 +45,9 @@
                 <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Sample CSV</h6>
             </div>
             <div class="card-body">
-                <pre class="bg-light p-3 rounded mb-0"><code>machine_code,name,customer_id,machine_type_id,description,location_details,status,serial_number,manufacturer,model
-MC001,Vending Machine A,1,1,Main lobby machine,Building A Ground Floor,active,SN12345,VendCo,Model X
-MC002,Vending Machine B,1,2,Break room machine,Building A Level 2,active,SN12346,VendCo,Model Y</code></pre>
+                <pre class="bg-light p-3 rounded mb-0"><code>machine_code,name,customer,machine_type,description,location_details,status,serial_number,manufacturer,model
+MC001,Vending Machine A,Acme Corp,Snack,Main lobby machine,Building A Ground Floor,active,SN12345,VendCo,Model X
+MC002,Vending Machine B,Acme Corp,Drink,Break room machine,Building A Level 2,maintenance,SN12346,VendCo,Model Y</code></pre>
             </div>
         </div>
     </div>

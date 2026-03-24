@@ -228,19 +228,24 @@ class MachinesController
         unset($log);
 
         // Nayax device linked to this machine
-        $nayaxDevice = $this->db->fetch(
-            "SELECT * FROM nayax_devices WHERE machine_id = ? LIMIT 1",
-            [$id]
-        );
-
+        $nayaxDevice = null;
         $nayaxTransactions = [];
-        if ($nayaxDevice) {
-            $nayaxTransactions = $this->db->fetchAll(
-                "SELECT * FROM nayax_transactions
-                 WHERE device_id = ?
-                 ORDER BY transaction_date DESC LIMIT 25",
-                [$nayaxDevice['device_id']]
+        try {
+            $nayaxDevice = $this->db->fetch(
+                "SELECT * FROM nayax_devices WHERE machine_id = ? LIMIT 1",
+                [$id]
             );
+
+            if ($nayaxDevice) {
+                $nayaxTransactions = $this->db->fetchAll(
+                    "SELECT * FROM nayax_transactions
+                     WHERE device_id = ?
+                     ORDER BY transaction_date DESC LIMIT 25",
+                    [$nayaxDevice['device_id']]
+                );
+            }
+        } catch (\Exception $e) {
+            // Nayax tables may not exist yet
         }
 
         return $this->twig->render($response, 'admin/machines/show.twig', $this->viewData([
@@ -379,10 +384,26 @@ class MachinesController
         $headers = array_map('trim', $headers);
         $headers = array_map('strtolower', $headers);
 
+        // Build lookup maps for customer and machine type names
+        $customerMap = [];
+        $customers = $this->db->fetchAll("SELECT id, name FROM customers");
+        foreach ($customers as $c) {
+            $customerMap[strtolower(trim($c['name']))] = (int) $c['id'];
+        }
+
+        $typeMap = [];
+        $types = $this->db->fetchAll("SELECT id, name FROM machine_types");
+        foreach ($types as $t) {
+            $typeMap[strtolower(trim($t['name']))] = (int) $t['id'];
+        }
+
+        $validStatuses = ['active', 'maintenance', 'inactive', 'in_storage'];
+
         $imported = 0;
         $errors = 0;
+        $skipped = [];
 
-        foreach ($lines as $line) {
+        foreach ($lines as $lineNum => $line) {
             $line = trim($line);
             if ($line === '') {
                 continue;
@@ -396,28 +417,67 @@ class MachinesController
                 continue;
             }
 
+            // Resolve customer by name or ID
+            $customerId = null;
+            $customerVal = trim($record['customer'] ?? $record['customer_name'] ?? $record['customer_id'] ?? '');
+            if ($customerVal !== '') {
+                if (is_numeric($customerVal)) {
+                    $customerId = (int) $customerVal;
+                } else {
+                    $customerId = $customerMap[strtolower($customerVal)] ?? null;
+                    if ($customerId === null) {
+                        $skipped[] = "Row " . ($lineNum + 2) . ": Customer '{$customerVal}' not found";
+                        $errors++;
+                        continue;
+                    }
+                }
+            }
+
+            // Resolve machine type by name or ID
+            $typeId = null;
+            $typeVal = trim($record['machine_type'] ?? $record['type'] ?? $record['machine_type_id'] ?? '');
+            if ($typeVal !== '') {
+                if (is_numeric($typeVal)) {
+                    $typeId = (int) $typeVal;
+                } else {
+                    $typeId = $typeMap[strtolower($typeVal)] ?? null;
+                }
+            }
+
+            // Resolve status - accept friendly names
+            $statusVal = strtolower(trim($record['status'] ?? 'active'));
+            $statusVal = str_replace(' ', '_', $statusVal);
+            if (!in_array($statusVal, $validStatuses)) {
+                $statusVal = 'active';
+            }
+
             try {
-                $this->db->insert('machines', [
+                $id = $this->db->insert('machines', [
                     'machine_code' => trim($record['machine_code'] ?? ''),
                     'name' => trim($record['name'] ?? ''),
-                    'customer_id' => !empty($record['customer_id']) ? (int) $record['customer_id'] : null,
-                    'machine_type_id' => !empty($record['machine_type_id']) ? (int) $record['machine_type_id'] : null,
+                    'customer_id' => $customerId,
+                    'machine_type_id' => $typeId,
                     'description' => trim($record['description'] ?? ''),
-                    'location_details' => trim($record['location_details'] ?? ''),
-                    'status' => $record['status'] ?? 'active',
+                    'location_details' => trim($record['location_details'] ?? $record['location'] ?? ''),
+                    'status' => $statusVal,
                     'serial_number' => trim($record['serial_number'] ?? ''),
                     'manufacturer' => trim($record['manufacturer'] ?? ''),
                     'model' => trim($record['model'] ?? ''),
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ]);
+                $this->audit->log('created', 'machine', (int) $id, null, ['source' => 'csv_import']);
                 $imported++;
             } catch (\Exception $e) {
                 $errors++;
             }
         }
 
-        $_SESSION['flash_success'] = "Import complete: {$imported} machines imported, {$errors} errors.";
+        $msg = "Import complete: {$imported} machines imported, {$errors} errors.";
+        if (!empty($skipped)) {
+            $msg .= ' Skipped: ' . implode('; ', array_slice($skipped, 0, 5));
+        }
+        $_SESSION['flash_success'] = $msg;
         return $response->withHeader('Location', '/machines')->withStatus(302);
     }
 
