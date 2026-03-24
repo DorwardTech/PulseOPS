@@ -165,15 +165,21 @@ class CustomersController
             [$id]
         );
 
-        $revenueEntries = $this->db->fetchAll(
-            "SELECT r.*, m.name AS machine_name
-             FROM revenue r
-             JOIN machines m ON r.machine_id = m.id
-             WHERE m.customer_id = ?
-             ORDER BY r.collection_date DESC
-             LIMIT 50",
-            [$id]
-        );
+        // Build machine ID list for efficient revenue lookup
+        $machineIds = array_column($machines, 'id');
+        $revenueEntries = [];
+        if (!empty($machineIds)) {
+            $placeholders = implode(',', array_fill(0, count($machineIds), '?'));
+            $revenueEntries = $this->db->fetchAll(
+                "SELECT r.*, m.name AS machine_name
+                 FROM revenue r
+                 JOIN machines m ON r.machine_id = m.id
+                 WHERE r.machine_id IN ({$placeholders})
+                 ORDER BY r.collection_date DESC
+                 LIMIT 20",
+                $machineIds
+            );
+        }
 
         $commissions = $this->db->fetchAll(
             "SELECT * FROM commission_payments
