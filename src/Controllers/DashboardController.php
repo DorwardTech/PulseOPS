@@ -44,17 +44,20 @@ class DashboardController
             "SELECT COUNT(*) FROM customers WHERE is_active = 1"
         );
 
-        // This month revenue (cash + card, excludes prepaid per new formula)
-        $thisMonthRevenue = (float) $this->db->fetchColumn(
-            "SELECT COALESCE(SUM(cash_amount + card_amount), 0)
+        // This month revenue
+        $thisMonthSummary = $this->db->fetch(
+            "SELECT COALESCE(SUM(cash_amount + card_amount + prepaid_amount), 0) AS total,
+                    COALESCE(SUM(prepaid_amount), 0) AS prepaid
              FROM revenue
              WHERE collection_date BETWEEN ? AND ?",
             [$monthStart, $monthEnd]
         );
+        $thisMonthRevenue = (float) $thisMonthSummary['total'];
+        $thisMonthPrepaid = (float) $thisMonthSummary['prepaid'];
 
         // Last month revenue for comparison
         $lastMonthRevenue = (float) $this->db->fetchColumn(
-            "SELECT COALESCE(SUM(cash_amount + card_amount), 0)
+            "SELECT COALESCE(SUM(cash_amount + card_amount + prepaid_amount), 0)
              FROM revenue
              WHERE collection_date BETWEEN ? AND ?",
             [$lastMonthStart, $lastMonthEnd]
@@ -87,7 +90,7 @@ class DashboardController
         $thirtyDaysAgo = date('Y-m-d', strtotime('-30 days'));
         $topMachines = $this->db->fetchAll(
             "SELECT m.id, m.name, m.machine_code, c.name AS customer_name,
-                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue
+                    COALESCE(SUM(r.cash_amount + r.card_amount + r.prepaid_amount), 0) AS total_revenue
              FROM revenue r
              JOIN machines m ON r.machine_id = m.id
              LEFT JOIN customers c ON m.customer_id = c.id
@@ -113,7 +116,8 @@ class DashboardController
         $chartRows = $this->db->fetchAll(
             "SELECT DATE_FORMAT(collection_date, '%Y-%m') AS month,
                     COALESCE(SUM(cash_amount), 0) AS cash,
-                    COALESCE(SUM(card_amount), 0) AS card
+                    COALESCE(SUM(card_amount), 0) AS card,
+                    COALESCE(SUM(prepaid_amount), 0) AS prepaid
              FROM revenue
              WHERE collection_date >= ?
              GROUP BY DATE_FORMAT(collection_date, '%Y-%m')
@@ -121,11 +125,12 @@ class DashboardController
             [$sixMonthsAgo]
         );
 
-        $revenueChart = ['labels' => [], 'cash' => [], 'card' => []];
+        $revenueChart = ['labels' => [], 'cash' => [], 'card' => [], 'prepaid' => []];
         foreach ($chartRows as $row) {
             $revenueChart['labels'][] = date('M Y', strtotime($row['month'] . '-01'));
             $revenueChart['cash'][] = (float) $row['cash'];
             $revenueChart['card'][] = (float) $row['card'];
+            $revenueChart['prepaid'][] = (float) $row['prepaid'];
         }
 
         return $this->twig->render($response, 'admin/dashboard/index.twig', [
@@ -138,6 +143,7 @@ class DashboardController
                 'total_machines' => $totalMachines,
                 'total_customers' => $totalCustomers,
                 'month_revenue' => $thisMonthRevenue,
+                'month_prepaid' => $thisMonthPrepaid,
                 'revenue_change' => $revenueChange,
                 'open_jobs' => $openJobs,
             ],

@@ -125,7 +125,7 @@ class PortalController
         if (!empty($machineIds)) {
             $placeholders = implode(',', array_fill(0, count($machineIds), '?'));
             $thisMonthRevenue = (float) $this->db->fetchColumn(
-                "SELECT COALESCE(SUM(cash_amount + card_amount), 0)
+                "SELECT COALESCE(SUM(cash_amount + card_amount + prepaid_amount), 0)
                  FROM revenue
                  WHERE machine_id IN ({$placeholders})
                    AND collection_date BETWEEN ? AND ?",

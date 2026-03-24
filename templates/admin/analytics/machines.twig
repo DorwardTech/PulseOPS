@@ -58,6 +58,7 @@
                         <th class="text-center">Collections</th>
                         <th class="text-end">Cash</th>
                         <th class="text-end">Card</th>
+                        <th class="text-end fst-italic">Prepaid</th>
                         <th class="text-end">Total Revenue</th>
                         <th>Last Collection</th>
                     </tr>
@@ -81,12 +82,13 @@
                         <td class="text-center">{{ row.collection_count }}</td>
                         <td class="text-end">${{ row.cash_total|number_format(2) }}</td>
                         <td class="text-end">${{ row.card_total|number_format(2) }}</td>
+                        <td class="text-end fst-italic text-info">${{ row.prepaid_total|number_format(2) }}</td>
                         <td class="text-end fw-bold">${{ row.total_revenue|number_format(2) }}</td>
                         <td>{{ row.last_collection|default('--') }}</td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">No machine data available.</td>
+                        <td colspan="9" class="text-center text-muted py-4">No machine data available.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

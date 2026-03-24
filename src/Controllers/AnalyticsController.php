@@ -30,9 +30,10 @@ class AnalyticsController
         $twelveMonthsAgo = date('Y-m-01', strtotime('-11 months'));
         $revenueTrends = $this->db->fetchAll(
             "SELECT DATE_FORMAT(collection_date, '%Y-%m') AS month,
-                    COALESCE(SUM(cash_amount + card_amount), 0) AS total_revenue,
+                    COALESCE(SUM(cash_amount + card_amount + prepaid_amount), 0) AS total_revenue,
                     COALESCE(SUM(cash_amount), 0) AS cash_total,
                     COALESCE(SUM(card_amount), 0) AS card_total,
+                    COALESCE(SUM(prepaid_amount), 0) AS prepaid_total,
                     COUNT(*) AS collection_count
              FROM revenue
              WHERE collection_date >= ?
@@ -44,7 +45,7 @@ class AnalyticsController
         // Top 10 machines by revenue (last 12 months)
         $topMachines = $this->db->fetchAll(
             "SELECT m.id, m.name, m.machine_code,
-                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue,
+                    COALESCE(SUM(r.cash_amount + r.card_amount + r.prepaid_amount), 0) AS total_revenue,
                     COUNT(r.id) AS collection_count
              FROM machines m
              LEFT JOIN revenue r ON m.id = r.machine_id AND r.collection_date >= ?
@@ -58,7 +59,7 @@ class AnalyticsController
         // Top 10 customers by revenue (last 12 months)
         $topCustomers = $this->db->fetchAll(
             "SELECT c.id, c.name, c.business_name,
-                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue,
+                    COALESCE(SUM(r.cash_amount + r.card_amount + r.prepaid_amount), 0) AS total_revenue,
                     COUNT(DISTINCT m.id) AS machine_count
              FROM customers c
              JOIN machines m ON c.id = m.customer_id
@@ -77,19 +78,19 @@ class AnalyticsController
         $lastMonthEnd = date('Y-m-t', strtotime('last day of last month'));
 
         $thisMonthRevenue = (float) $this->db->fetchColumn(
-            "SELECT COALESCE(SUM(cash_amount + card_amount), 0) FROM revenue
+            "SELECT COALESCE(SUM(cash_amount + card_amount + prepaid_amount), 0) FROM revenue
              WHERE collection_date BETWEEN ? AND ?",
             [$thisMonthStart, $thisMonthEnd]
         );
 
         $lastMonthRevenue = (float) $this->db->fetchColumn(
-            "SELECT COALESCE(SUM(cash_amount + card_amount), 0) FROM revenue
+            "SELECT COALESCE(SUM(cash_amount + card_amount + prepaid_amount), 0) FROM revenue
              WHERE collection_date BETWEEN ? AND ?",
             [$lastMonthStart, $lastMonthEnd]
         );
 
         $yearToDateRevenue = (float) $this->db->fetchColumn(
-            "SELECT COALESCE(SUM(cash_amount + card_amount), 0) FROM revenue
+            "SELECT COALESCE(SUM(cash_amount + card_amount + prepaid_amount), 0) FROM revenue
              WHERE collection_date >= ?",
             [date('Y-01-01')]
         );
@@ -129,7 +130,7 @@ class AnalyticsController
         // Revenue grouped by month
         $byMonth = $this->db->fetchAll(
             "SELECT DATE_FORMAT(r.collection_date, '%Y-%m') AS period,
-                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue,
+                    COALESCE(SUM(r.cash_amount + r.card_amount + r.prepaid_amount), 0) AS total_revenue,
                     COALESCE(SUM(r.cash_amount), 0) AS cash_total,
                     COALESCE(SUM(r.card_amount), 0) AS card_total,
                     COUNT(*) AS collection_count
@@ -143,9 +144,10 @@ class AnalyticsController
         // Revenue grouped by machine
         $byMachine = $this->db->fetchAll(
             "SELECT m.id, m.name, m.machine_code,
-                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue,
+                    COALESCE(SUM(r.cash_amount + r.card_amount + r.prepaid_amount), 0) AS total_revenue,
                     COALESCE(SUM(r.cash_amount), 0) AS cash_total,
                     COALESCE(SUM(r.card_amount), 0) AS card_total,
+                    COALESCE(SUM(r.prepaid_amount), 0) AS prepaid_total,
                     COUNT(r.id) AS collection_count
              FROM revenue r
              LEFT JOIN machines m ON r.machine_id = m.id
@@ -158,9 +160,10 @@ class AnalyticsController
         // Revenue grouped by customer
         $byCustomer = $this->db->fetchAll(
             "SELECT c.id, c.name, c.business_name,
-                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue,
+                    COALESCE(SUM(r.cash_amount + r.card_amount + r.prepaid_amount), 0) AS total_revenue,
                     COALESCE(SUM(r.cash_amount), 0) AS cash_total,
                     COALESCE(SUM(r.card_amount), 0) AS card_total,
+                    COALESCE(SUM(r.prepaid_amount), 0) AS prepaid_total,
                     COUNT(r.id) AS collection_count
              FROM revenue r
              LEFT JOIN machines m ON r.machine_id = m.id
@@ -173,9 +176,10 @@ class AnalyticsController
 
         // Overall totals for the period
         $totals = $this->db->fetch(
-            "SELECT COALESCE(SUM(cash_amount + card_amount), 0) AS total_revenue,
+            "SELECT COALESCE(SUM(cash_amount + card_amount + prepaid_amount), 0) AS total_revenue,
                     COALESCE(SUM(cash_amount), 0) AS cash_total,
                     COALESCE(SUM(card_amount), 0) AS card_total,
+                    COALESCE(SUM(prepaid_amount), 0) AS prepaid_total,
                     COUNT(*) AS collection_count
              FROM revenue r
              WHERE {$where}",
@@ -217,9 +221,10 @@ class AnalyticsController
         $machineRevenue = $this->db->fetchAll(
             "SELECT m.id, m.name, m.machine_code, m.status, m.location_details,
                     c.name AS customer_name,
-                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue,
+                    COALESCE(SUM(r.cash_amount + r.card_amount + r.prepaid_amount), 0) AS total_revenue,
                     COALESCE(SUM(r.cash_amount), 0) AS cash_total,
                     COALESCE(SUM(r.card_amount), 0) AS card_total,
+                    COALESCE(SUM(r.prepaid_amount), 0) AS prepaid_total,
                     COUNT(r.id) AS collection_count,
                     MAX(r.collection_date) AS last_collection
              FROM machines m
@@ -290,9 +295,10 @@ class AnalyticsController
         $customerRevenue = $this->db->fetchAll(
             "SELECT c.id, c.name, c.business_name, c.commission_rate,
                     COUNT(DISTINCT m.id) AS machine_count,
-                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue,
+                    COALESCE(SUM(r.cash_amount + r.card_amount + r.prepaid_amount), 0) AS total_revenue,
                     COALESCE(SUM(r.cash_amount), 0) AS cash_total,
                     COALESCE(SUM(r.card_amount), 0) AS card_total,
+                    COALESCE(SUM(r.prepaid_amount), 0) AS prepaid_total,
                     COUNT(r.id) AS collection_count
              FROM customers c
              LEFT JOIN machines m ON c.id = m.customer_id
@@ -364,12 +370,13 @@ class AnalyticsController
 
         switch ($type) {
             case 'revenue':
-                $headers = ['Month', 'Total Revenue', 'Cash', 'Card', 'Collections'];
+                $headers = ['Month', 'Total Revenue', 'Cash', 'Card', 'Prepaid', 'Collections'];
                 $rows = $this->db->fetchAll(
                     "SELECT DATE_FORMAT(collection_date, '%Y-%m') AS month,
-                            COALESCE(SUM(cash_amount + card_amount), 0) AS total_revenue,
+                            COALESCE(SUM(cash_amount + card_amount + prepaid_amount), 0) AS total_revenue,
                             COALESCE(SUM(cash_amount), 0) AS cash_total,
                             COALESCE(SUM(card_amount), 0) AS card_total,
+                            COALESCE(SUM(prepaid_amount), 0) AS prepaid_total,
                             COUNT(*) AS collection_count
                      FROM revenue
                      WHERE collection_date BETWEEN ? AND ?
@@ -380,13 +387,14 @@ class AnalyticsController
                 break;
 
             case 'machines':
-                $headers = ['Machine', 'Code', 'Status', 'Customer', 'Total Revenue', 'Cash', 'Card', 'Collections'];
+                $headers = ['Machine', 'Code', 'Status', 'Customer', 'Total Revenue', 'Cash', 'Card', 'Prepaid', 'Collections'];
                 $rows = $this->db->fetchAll(
                     "SELECT m.name, m.machine_code, m.status,
                             c.name AS customer_name,
-                            COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue,
+                            COALESCE(SUM(r.cash_amount + r.card_amount + r.prepaid_amount), 0) AS total_revenue,
                             COALESCE(SUM(r.cash_amount), 0) AS cash_total,
                             COALESCE(SUM(r.card_amount), 0) AS card_total,
+                            COALESCE(SUM(r.prepaid_amount), 0) AS prepaid_total,
                             COUNT(r.id) AS collection_count
                      FROM machines m
                      LEFT JOIN customers c ON m.customer_id = c.id
@@ -399,13 +407,14 @@ class AnalyticsController
                 break;
 
             case 'customers':
-                $headers = ['Customer', 'Business Name', 'Machines', 'Total Revenue', 'Cash', 'Card', 'Collections'];
+                $headers = ['Customer', 'Business Name', 'Machines', 'Total Revenue', 'Cash', 'Card', 'Prepaid', 'Collections'];
                 $rows = $this->db->fetchAll(
                     "SELECT c.name, c.business_name,
                             COUNT(DISTINCT m.id) AS machine_count,
-                            COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue,
+                            COALESCE(SUM(r.cash_amount + r.card_amount + r.prepaid_amount), 0) AS total_revenue,
                             COALESCE(SUM(r.cash_amount), 0) AS cash_total,
                             COALESCE(SUM(r.card_amount), 0) AS card_total,
+                            COALESCE(SUM(r.prepaid_amount), 0) AS prepaid_total,
                             COUNT(r.id) AS collection_count
                      FROM customers c
                      LEFT JOIN machines m ON c.id = m.customer_id
