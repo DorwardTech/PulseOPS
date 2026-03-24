@@ -581,57 +581,27 @@ class NayaxController
 
     /**
      * Re-derive payment_type from raw_data JSON for all nayax transactions.
-     * Uses the same resolvePaymentType logic from NayaxService.
+     * Uses bulk SQL with JSON_EXTRACT to avoid loading all rows into PHP.
      */
     private function reclassifyPaymentTypes(): int
     {
-        $rows = $this->db->fetchAll(
-            "SELECT id, raw_data FROM nayax_transactions WHERE raw_data IS NOT NULL"
-        );
+        // Use MySQL JSON_EXTRACT to reclassify in bulk
+        // RecognitionMethod takes priority for prepaid detection
+        $sql = "UPDATE nayax_transactions SET payment_type = CASE
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) IN ('mifare', 'mifh') THEN 'mifh'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) IN ('qr', 'qrcode', 'qr code') THEN 'qr'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) = 'app' THEN 'app'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) IN ('prepaid', 'nfc') THEN 'prepaid'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('cash') THEN 'cash'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('coin', 'coins') THEN 'coin'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('prepaid') THEN 'prepaid'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('qr', 'qrcode', 'qr code') THEN 'qr'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('mifare', 'mifh') THEN 'mifh'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) = 'app' THEN 'app'
+            ELSE 'card'
+        END
+        WHERE raw_data IS NOT NULL";
 
-        $prepaidRecognition = [
-            'mifare' => 'mifh', 'mifh' => 'mifh',
-            'qr' => 'qr', 'qr code' => 'qr', 'qrcode' => 'qr',
-            'app' => 'app', 'prepaid' => 'prepaid', 'nfc' => 'prepaid',
-        ];
-
-        $paymentMap = [
-            'creditcard' => 'card', 'credit card' => 'card', 'credit' => 'card',
-            'debit' => 'card', 'debitcard' => 'card', 'visa' => 'card',
-            'mastercard' => 'card', 'card' => 'card', 'cashless' => 'card',
-            'cash' => 'cash', 'coin' => 'coin', 'coins' => 'coin',
-            'prepaid' => 'prepaid', 'qr' => 'qr', 'qrcode' => 'qr',
-            'qr code' => 'qr', 'app' => 'app', 'mifh' => 'mifh', 'mifare' => 'mifh',
-        ];
-
-        $updated = 0;
-
-        foreach ($rows as $row) {
-            $sale = json_decode($row['raw_data'], true);
-            if (!is_array($sale)) {
-                continue;
-            }
-
-            $recognition = strtolower(trim($sale['RecognitionMethod'] ?? ''));
-            $payment = strtolower(trim($sale['PaymentMethod'] ?? ''));
-
-            if (isset($prepaidRecognition[$recognition])) {
-                $type = $prepaidRecognition[$recognition];
-            } elseif ($payment !== '' && isset($paymentMap[$payment])) {
-                $type = $paymentMap[$payment];
-            } elseif ($payment !== '') {
-                $type = $payment;
-            } else {
-                $type = 'card';
-            }
-
-            $this->db->execute(
-                "UPDATE nayax_transactions SET payment_type = ? WHERE id = ?",
-                [$type, $row['id']]
-            );
-            $updated++;
-        }
-
-        return $updated;
+        return $this->db->execute($sql);
     }
 }
