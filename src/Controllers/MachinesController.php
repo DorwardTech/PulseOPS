@@ -47,7 +47,7 @@ class MachinesController
 
         $status = $params['status'] ?? null;
         $customerId = $params['customer_id'] ?? null;
-        $typeId = $params['type'] ?? null;
+        $typeId = $params['machine_type_id'] ?? null;
         $search = $params['search'] ?? null;
 
         $where = ['1=1'];
