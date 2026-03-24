@@ -570,28 +570,24 @@ class CommissionsController
             'carry_forward_in' => $carryForward,
         ]);
 
-        // Include manual adjustment line items
-        $adjustments = $this->db->fetchColumn(
-            "SELECT COALESCE(SUM(amount), 0)
-             FROM commission_line_items
-             WHERE commission_id = ? AND type = 'adjustment'",
-            [$id]
-        );
-
-        $netAmount = $result['commission_amount'] + (float) $adjustments;
-
         $this->db->update('commission_payments', [
-            'gross_revenue' => $result['gross_revenue'],
             'total_cash' => $totalCash,
             'total_card' => $totalCard,
             'total_prepaid' => $totalPrepaid,
+            'total_card_transactions' => $totalCardTransactions,
             'commission_rate' => $commissionRate,
-            'commission_amount' => $result['commission_amount'],
             'processing_fee_rate' => $processingFee,
+            'total_parts_cost' => $totalPartsCost,
+            'total_labour_cost' => $totalLabourCost,
+            'gross_revenue' => $result['gross_revenue'],
             'processing_fees' => $result['transaction_fees'],
-            'total_parts_cost' => $totalPartsCost + $totalLabourCost,
+            'net_revenue' => $result['net_revenue'],
+            'parts_deduction' => $result['parts_deduction'],
+            'labour_deduction' => $result['labour_deduction'],
+            'adjustments_total' => $result['adjustments_total'],
+            'commission_calculated' => $result['commission_calculated'],
+            'commission_amount' => $result['commission_amount'],
             'carry_forward_out' => $result['carry_forward_out'] ?? 0,
-            'net_revenue' => $netAmount,
             'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$id]);
 
@@ -608,7 +604,7 @@ class CommissionsController
     }
 
     /**
-     * Internal helper to recalculate net_amount after line item changes.
+     * Internal helper to recalculate commission after line item changes.
      */
     private function recalculateNetAmount(int $commissionId): void
     {
@@ -620,19 +616,23 @@ class CommissionsController
         $adjustments = (float) $this->db->fetchColumn(
             "SELECT COALESCE(SUM(amount), 0)
              FROM commission_line_items
-             WHERE commission_id = ? AND type = 'adjustment'",
+             WHERE commission_id = ?",
             [$commissionId]
         );
 
-        $baseNet = (float) ($commission['commission_amount'] ?? 0)
-            - (float) ($commission['processing_fees'] ?? 0)
-            - (float) ($commission['total_parts_cost'] ?? 0)
-            + (float) ($commission['carry_forward_in'] ?? 0);
+        $netRevenue = (float) ($commission['net_revenue'] ?? 0);
+        $commissionRate = (float) ($commission['commission_rate'] ?? 0);
+        $carryForwardIn = (float) ($commission['carry_forward_in'] ?? 0);
 
-        $netAmount = $baseNet + $adjustments;
+        $commissionCalculated = ($netRevenue * $commissionRate / 100) + $adjustments + $carryForwardIn;
+        $commissionAmount = max(0, $commissionCalculated);
+        $carryForwardOut = $commissionCalculated < 0 ? $commissionCalculated : 0;
 
         $this->db->update('commission_payments', [
-            'net_revenue' => $netAmount,
+            'adjustments_total' => $adjustments,
+            'commission_calculated' => round($commissionCalculated, 2),
+            'commission_amount' => round($commissionAmount, 2),
+            'carry_forward_out' => round($carryForwardOut, 2),
             'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$commissionId]);
     }
