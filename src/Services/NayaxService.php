@@ -157,9 +157,13 @@ class NayaxService
         $allTransactions = [];
 
         try {
+            // Nayax API expects datetime format with T separator
+            $fromDateTime = str_contains($dateFrom, 'T') ? $dateFrom : $dateFrom . 'T00:00:00';
+            $toDateTime = str_contains($dateTo, 'T') ? $dateTo : $dateTo . 'T23:59:59';
+
             $params = [
-                'FromDate' => $dateFrom,
-                'ToDate' => $dateTo,
+                'FromDate' => $fromDateTime,
+                'ToDate' => $toDateTime,
                 'Take' => 1000,
                 'Skip' => 0
             ];
@@ -171,7 +175,27 @@ class NayaxService
             $response = $this->request('GET', '/v1/transactions', $params);
 
             if ($response['status'] === 200) {
-                $rawTransactions = $response['data'] ?? [];
+                $data = $response['data'] ?? [];
+
+                // API may return transactions nested under a key or as a bare array
+                $rawTransactions = $data;
+                if (isset($data['Transactions'])) {
+                    $rawTransactions = $data['Transactions'];
+                } elseif (isset($data['transactions'])) {
+                    $rawTransactions = $data['transactions'];
+                } elseif (isset($data['Items'])) {
+                    $rawTransactions = $data['Items'];
+                } elseif (isset($data['items'])) {
+                    $rawTransactions = $data['items'];
+                } elseif (isset($data['Data'])) {
+                    $rawTransactions = $data['Data'];
+                }
+
+                // If data is still associative (not a list), it's likely a wrapper object
+                if (!empty($rawTransactions) && !array_is_list($rawTransactions)) {
+                    error_log("Nayax getTransactions: unexpected response structure. Keys: " . implode(', ', array_keys($rawTransactions)));
+                    $rawTransactions = [];
+                }
 
                 foreach ($rawTransactions as $txn) {
                     $deviceId = (string) ($txn['MachineID'] ?? $txn['machineID'] ?? $txn['DeviceId'] ?? '');
@@ -192,6 +216,12 @@ class NayaxService
                         'raw' => $txn
                     ];
                 }
+            } else {
+                error_log("Nayax getTransactions: API returned status {$response['status']}");
+            }
+
+            if (empty($allTransactions)) {
+                error_log("Nayax getTransactions: 0 transactions returned for {$fromDateTime} to {$toDateTime}. Response keys: " . implode(', ', array_keys($response['data'] ?? [])));
             }
         } catch (\Exception $e) {
             error_log("Nayax getTransactions error: " . $e->getMessage());
