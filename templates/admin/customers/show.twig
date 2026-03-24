@@ -115,7 +115,7 @@
                         <tbody>
                             {% for user in portal_users %}
                             <tr>
-                                <td>{{ user.full_name }}</td>
+                                <td>{{ user.name }}</td>
                                 <td>{{ user.email }}</td>
                                 <td>
                                     {% if user.is_active %}
@@ -156,8 +156,8 @@
                         </div>
                         <div class="modal-body">
                             <div class="mb-3">
-                                <label for="portal_full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="portal_full_name" name="full_name" required>
+                                <label for="portal_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="portal_name" name="name" required>
                             </div>
                             <div class="mb-3">
                                 <label for="portal_email" class="form-label">Email <span class="text-danger">*</span></label>
@@ -203,7 +203,7 @@
                             <tr>
                                 <td><strong>{{ machine.machine_code }}</strong></td>
                                 <td>{{ machine.name }}</td>
-                                <td>{{ machine.machine_type.name|default('--') }}</td>
+                                <td>{{ machine.type_name|default('--') }}</td>
                                 <td>
                                     {% if machine.status == 'active' %}
                                         <span class="badge bg-success">Active</span>
@@ -256,7 +256,7 @@
                             {% for entry in revenue_entries %}
                             <tr>
                                 <td>{{ format_date(entry.collection_date) }}</td>
-                                <td>{{ entry.machine.name|default('--') }}</td>
+                                <td>{{ entry.machine_name|default('--') }}</td>
                                 <td class="text-end">{{ format_currency(entry.cash_amount) }}</td>
                                 <td class="text-end">{{ format_currency(entry.card_amount) }}</td>
                                 <td class="text-end fst-italic text-info">{{ format_currency(entry.prepaid_amount) }}</td>
