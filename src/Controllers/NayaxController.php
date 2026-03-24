@@ -559,6 +559,9 @@ class NayaxController
     public function reaggregate(Request $request, Response $response, array $args = []): Response
     {
         try {
+            // Re-derive payment_type from raw_data for all transactions
+            $reclassified = $this->reclassifyPaymentTypes();
+
             // Delete all nayax-sourced revenue records
             $this->db->execute("DELETE FROM revenue WHERE source = 'nayax'");
 
@@ -568,11 +571,67 @@ class NayaxController
             // Re-run aggregation
             $count = $this->aggregateToRevenue();
 
-            $_SESSION['flash_success'] = "Re-aggregation complete. {$count} revenue records rebuilt from nayax transactions.";
+            $_SESSION['flash_success'] = "Re-aggregation complete. {$reclassified} transactions reclassified, {$count} revenue records rebuilt.";
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'Re-aggregation failed: ' . $e->getMessage();
         }
 
         return $response->withHeader('Location', '/nayax/import')->withStatus(302);
+    }
+
+    /**
+     * Re-derive payment_type from raw_data JSON for all nayax transactions.
+     * Uses the same resolvePaymentType logic from NayaxService.
+     */
+    private function reclassifyPaymentTypes(): int
+    {
+        $rows = $this->db->fetchAll(
+            "SELECT id, raw_data FROM nayax_transactions WHERE raw_data IS NOT NULL"
+        );
+
+        $prepaidRecognition = [
+            'mifare' => 'mifh', 'mifh' => 'mifh',
+            'qr' => 'qr', 'qr code' => 'qr', 'qrcode' => 'qr',
+            'app' => 'app', 'prepaid' => 'prepaid', 'nfc' => 'prepaid',
+        ];
+
+        $paymentMap = [
+            'creditcard' => 'card', 'credit card' => 'card', 'credit' => 'card',
+            'debit' => 'card', 'debitcard' => 'card', 'visa' => 'card',
+            'mastercard' => 'card', 'card' => 'card', 'cashless' => 'card',
+            'cash' => 'cash', 'coin' => 'coin', 'coins' => 'coin',
+            'prepaid' => 'prepaid', 'qr' => 'qr', 'qrcode' => 'qr',
+            'qr code' => 'qr', 'app' => 'app', 'mifh' => 'mifh', 'mifare' => 'mifh',
+        ];
+
+        $updated = 0;
+
+        foreach ($rows as $row) {
+            $sale = json_decode($row['raw_data'], true);
+            if (!is_array($sale)) {
+                continue;
+            }
+
+            $recognition = strtolower(trim($sale['RecognitionMethod'] ?? ''));
+            $payment = strtolower(trim($sale['PaymentMethod'] ?? ''));
+
+            if (isset($prepaidRecognition[$recognition])) {
+                $type = $prepaidRecognition[$recognition];
+            } elseif ($payment !== '' && isset($paymentMap[$payment])) {
+                $type = $paymentMap[$payment];
+            } elseif ($payment !== '') {
+                $type = $payment;
+            } else {
+                $type = 'card';
+            }
+
+            $this->db->execute(
+                "UPDATE nayax_transactions SET payment_type = ? WHERE id = ?",
+                [$type, $row['id']]
+            );
+            $updated++;
+        }
+
+        return $updated;
     }
 }

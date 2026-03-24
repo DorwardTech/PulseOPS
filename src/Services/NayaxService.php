@@ -208,7 +208,7 @@ class NayaxService
                     'device_id'      => (string) ($sale['MachineID'] ?? $machineId),
                     'date'           => $txnDate ?? date('Y-m-d H:i:s'),
                     'amount'         => (float) ($sale['SettlementValue'] ?? $sale['AuthorizationValue'] ?? 0),
-                    'payment_type'   => self::normalizePaymentType($sale['PaymentMethod'] ?? 'card'),
+                    'payment_type'   => self::resolvePaymentType($sale),
                     'status'         => 'completed',
                     'machine_name'   => $sale['MachineName'] ?? null,
                     'product_name'   => $sale['ProductName'] ?? null,
@@ -554,13 +554,36 @@ class NayaxService
     }
 
     /**
-     * Normalize Nayax PaymentMethod values to standard types used by aggregation.
+     * Resolve the payment type from a Nayax sale object using both
+     * PaymentMethod and RecognitionMethod fields.
+     *
+     * RecognitionMethod indicates how the user was identified (MiFare, QR, App, etc.)
+     * and is the primary signal for prepaid-type transactions, since PaymentMethod
+     * may be null or generic "Credit Card" even for prepaid/QR/app payments.
      */
-    private static function normalizePaymentType(string $raw): string
+    private static function resolvePaymentType(array $sale): string
     {
-        $lower = strtolower(trim($raw));
+        $recognition = strtolower(trim($sale['RecognitionMethod'] ?? ''));
+        $payment = strtolower(trim($sale['PaymentMethod'] ?? ''));
 
-        $map = [
+        // RecognitionMethod-based prepaid detection (takes priority)
+        $prepaidRecognition = [
+            'mifare'      => 'mifh',
+            'mifh'        => 'mifh',
+            'qr'          => 'qr',
+            'qr code'     => 'qr',
+            'qrcode'      => 'qr',
+            'app'         => 'app',
+            'prepaid'     => 'prepaid',
+            'nfc'         => 'prepaid',
+        ];
+
+        if (isset($prepaidRecognition[$recognition])) {
+            return $prepaidRecognition[$recognition];
+        }
+
+        // Fall back to PaymentMethod normalization
+        $paymentMap = [
             'creditcard'  => 'card',
             'credit card' => 'card',
             'credit'      => 'card',
@@ -569,6 +592,7 @@ class NayaxService
             'visa'        => 'card',
             'mastercard'  => 'card',
             'card'        => 'card',
+            'cashless'    => 'card',
             'cash'        => 'cash',
             'coin'        => 'coin',
             'coins'       => 'coin',
@@ -579,9 +603,17 @@ class NayaxService
             'app'         => 'app',
             'mifh'        => 'mifh',
             'mifare'      => 'mifh',
-            'cashless'    => 'card',
         ];
 
-        return $map[$lower] ?? $lower;
+        if ($payment !== '' && isset($paymentMap[$payment])) {
+            return $paymentMap[$payment];
+        }
+
+        // If PaymentMethod is set but unknown, preserve it
+        if ($payment !== '') {
+            return $payment;
+        }
+
+        return 'card';
     }
 }
