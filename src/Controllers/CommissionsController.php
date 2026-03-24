@@ -309,9 +309,8 @@ class CommissionsController
         }
 
         $lineItems = $this->db->fetchAll(
-            "SELECT cli.*, m.name AS machine_name, m.machine_code
+            "SELECT cli.*
              FROM commission_line_items cli
-             LEFT JOIN machines m ON cli.machine_id = m.id
              WHERE cli.commission_id = ?
              ORDER BY cli.type, cli.created_at",
             [$id]

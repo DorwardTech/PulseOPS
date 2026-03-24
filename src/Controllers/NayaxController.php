@@ -397,11 +397,93 @@ class NayaxController
                 'imported_by'            => $this->auth->user()['id'] ?? null,
             ]);
 
-            $_SESSION['flash_success'] = "Import complete. {$imported} transactions imported, {$skipped} skipped (duplicates).";
+            // Aggregate imported transactions into revenue
+            $aggregated = $this->aggregateToRevenue();
+
+            $_SESSION['flash_success'] = "Import complete. {$imported} transactions imported, {$skipped} skipped (duplicates). {$aggregated} revenue records updated.";
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'Import failed: ' . $e->getMessage();
         }
 
         return $response->withHeader('Location', '/nayax/import')->withStatus(302);
+    }
+
+    /**
+     * Aggregate un-aggregated nayax_transactions into the revenue table.
+     * Returns the number of revenue records created or updated.
+     */
+    private function aggregateToRevenue(): int
+    {
+        $groups = $this->db->fetchAll(
+            "SELECT
+                nt.device_id,
+                nd.machine_id,
+                DATE(nt.transaction_date) as txn_date,
+                SUM(CASE WHEN nt.payment_type IN ('cash', 'coin') THEN nt.amount ELSE 0 END) as cash_total,
+                SUM(CASE WHEN nt.payment_type = 'card' THEN nt.amount ELSE 0 END) as card_total,
+                SUM(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'qr', 'app') THEN nt.amount ELSE 0 END) as prepaid_total,
+                COUNT(CASE WHEN nt.payment_type = 'card' THEN 1 END) as card_txn_count,
+                COUNT(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'qr', 'app') THEN 1 END) as prepaid_txn_count,
+                GROUP_CONCAT(nt.id) as transaction_ids
+             FROM nayax_transactions nt
+             JOIN nayax_devices nd ON nd.device_id = nt.device_id
+             WHERE nt.is_aggregated = 0
+               AND nt.status = 'completed'
+               AND nd.machine_id IS NOT NULL
+             GROUP BY nt.device_id, nd.machine_id, DATE(nt.transaction_date)"
+        );
+
+        $count = 0;
+
+        foreach ($groups as $group) {
+            if (!$group['machine_id']) {
+                continue;
+            }
+
+            $existing = $this->db->fetch(
+                "SELECT id, cash_amount, card_amount, prepaid_amount, card_transactions, prepaid_transactions
+                 FROM revenue
+                 WHERE machine_id = ? AND collection_date = ? AND source = 'nayax'",
+                [$group['machine_id'], $group['txn_date']]
+            );
+
+            if ($existing) {
+                $this->db->update('revenue', [
+                    'cash_amount' => (float)$existing['cash_amount'] + (float)$group['cash_total'],
+                    'card_amount' => (float)$existing['card_amount'] + (float)$group['card_total'],
+                    'prepaid_amount' => (float)$existing['prepaid_amount'] + (float)$group['prepaid_total'],
+                    'card_transactions' => (int)$existing['card_transactions'] + (int)$group['card_txn_count'],
+                    'prepaid_transactions' => (int)$existing['prepaid_transactions'] + (int)$group['prepaid_txn_count'],
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ], 'id = ?', [$existing['id']]);
+            } else {
+                $this->db->insert('revenue', [
+                    'machine_id' => $group['machine_id'],
+                    'collection_date' => $group['txn_date'],
+                    'cash_amount' => (float)$group['cash_total'],
+                    'card_amount' => (float)$group['card_total'],
+                    'prepaid_amount' => (float)$group['prepaid_total'],
+                    'card_transactions' => (int)$group['card_txn_count'],
+                    'prepaid_transactions' => (int)$group['prepaid_txn_count'],
+                    'cash_source' => 'nayax',
+                    'source' => 'nayax',
+                    'status' => 'approved',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+            }
+
+            $count++;
+
+            // Mark transactions as aggregated
+            $txnIds = explode(',', $group['transaction_ids']);
+            $placeholders = implode(',', array_fill(0, count($txnIds), '?'));
+            $this->db->execute(
+                "UPDATE nayax_transactions SET is_aggregated = 1, aggregated_at = NOW() WHERE id IN ({$placeholders})",
+                $txnIds
+            );
+        }
+
+        return $count;
     }
 }
