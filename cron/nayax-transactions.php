@@ -5,7 +5,8 @@ declare(strict_types=1);
 /**
  * Cron: Nayax Transaction Import
  * Schedule: Hourly
- * Imports recent transactions from Nayax API
+ * Imports recent transactions via GET /v1/machines/{id}/lastSales
+ * for each known machine/device.
  */
 
 $container = require __DIR__ . '/bootstrap.php';
@@ -44,8 +45,8 @@ try {
     $errors = 0;
 
     foreach ($transactions as $txn) {
-        $txnId = $txn['TransactionId'] ?? $txn['transaction_id'] ?? null;
-        if (!$txnId) {
+        $txnId = $txn['transaction_id'] ?? '';
+        if ($txnId === '') {
             $errors++;
             continue;
         }
@@ -53,7 +54,7 @@ try {
         // Check if already imported
         $existing = $db->fetch(
             "SELECT id FROM nayax_transactions WHERE transaction_id = ?",
-            [(string)$txnId]
+            [$txnId]
         );
 
         if ($existing) {
@@ -61,35 +62,33 @@ try {
             continue;
         }
 
-        $paymentType = strtolower($txn['PaymentType'] ?? $txn['payment_type'] ?? 'card');
+        $paymentType = strtolower($txn['payment_type'] ?? 'card');
 
-        // Determine payment category
+        // Determine payment category — skip cash if disabled
         if (in_array($paymentType, ['cash', 'coin'])) {
-            // Check if cash counting is enabled for this device's machine
-            $deviceId = $txn['DeviceId'] ?? $txn['device_id'] ?? null;
-            if ($deviceId && !$cashCountingEnabled) {
-                // Check per-machine setting
+            $deviceId = $txn['device_id'] ?? '';
+            if ($deviceId !== '' && !$cashCountingEnabled) {
                 $machine = $db->fetch(
                     "SELECT m.nayax_cash_counting FROM machines m
                      JOIN nayax_devices nd ON nd.machine_id = m.id
                      WHERE nd.device_id = ?",
-                    [(string)$deviceId]
+                    [$deviceId]
                 );
                 if (!$machine || !$machine['nayax_cash_counting']) {
                     $skipped++;
-                    continue; // Skip cash transactions when counting disabled
+                    continue;
                 }
             }
         }
 
         $db->insert('nayax_transactions', [
-            'transaction_id' => (string)$txnId,
-            'device_id' => (string)($txn['DeviceId'] ?? $txn['device_id'] ?? ''),
-            'transaction_date' => $txn['TransactionDate'] ?? $txn['transaction_date'] ?? date('Y-m-d H:i:s'),
-            'amount' => (float)($txn['Amount'] ?? $txn['amount'] ?? 0),
-            'payment_type' => $paymentType,
-            'status' => $txn['Status'] ?? $txn['status'] ?? 'completed',
-            'raw_data' => json_encode($txn),
+            'transaction_id'   => $txnId,
+            'device_id'        => (string) ($txn['device_id'] ?? ''),
+            'transaction_date' => $txn['date'] ?? date('Y-m-d H:i:s'),
+            'amount'           => (float) ($txn['amount'] ?? 0),
+            'payment_type'     => $paymentType,
+            'status'           => $txn['status'] ?? 'completed',
+            'raw_data'         => json_encode($txn['raw'] ?? []),
         ]);
 
         $imported++;
@@ -97,16 +96,16 @@ try {
 
     // Log import
     $db->insert('nayax_imports', [
-        'import_type' => 'cron',
-        'date_from' => $dateFrom,
-        'date_to' => $dateTo,
-        'transactions_imported' => $imported,
-        'transactions_skipped' => $skipped,
-        'transactions_error' => $errors,
-        'records_imported' => $imported,
-        'records_skipped' => $skipped,
-        'records_failed' => $errors,
-        'status' => $errors > 0 ? 'partial' : 'success',
+        'import_type'            => 'cron',
+        'date_from'              => $dateFrom,
+        'date_to'                => $dateTo,
+        'transactions_imported'  => $imported,
+        'transactions_skipped'   => $skipped,
+        'transactions_error'     => $errors,
+        'records_imported'       => $imported,
+        'records_skipped'        => $skipped,
+        'records_failed'         => $errors,
+        'status'                 => $errors > 0 ? 'partial' : 'success',
     ]);
 
     echo "Import complete. Imported: {$imported}, Skipped: {$skipped}, Errors: {$errors}\n";

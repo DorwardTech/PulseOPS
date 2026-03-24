@@ -100,6 +100,7 @@ class NayaxController
 
     /**
      * Sync devices from Nayax API.
+     * Uses GET /v1/machines which returns MachineInfo objects.
      */
     public function syncDevices(Request $request, Response $response, array $args = []): Response
     {
@@ -108,25 +109,34 @@ class NayaxController
 
             $synced = 0;
             foreach ($apiDevices as $device) {
+                $deviceId = $device['device_id'] ?? '';
+                if ($deviceId === '') {
+                    continue;
+                }
+
                 $existing = $this->db->fetch(
                     "SELECT id FROM nayax_devices WHERE device_id = ?",
-                    [$device['device_id']]
+                    [$deviceId]
                 );
 
                 $deviceData = [
-                    'device_name' => $device['name'],
-                    'device_serial' => $device['serial'],
-                    'device_model' => $device['model'] ?? null,
-                    'device_status' => $device['status'],
-                    'nayax_device_id' => $device['device_id'],
+                    'device_name'        => $device['name'] ?? null,
+                    'device_serial'      => $device['serial'] ?? null,
+                    'device_model'       => $device['model'] ?? null,
+                    'device_status'      => $device['status'] ?? 'unknown',
+                    'nayax_device_id'    => $deviceId,
+                    'vpos_id'            => $device['vpos_id'] ?? null,
+                    'firmware_version'   => $device['firmware_version'] ?? null,
+                    'latitude'           => $device['latitude'] ?? null,
+                    'longitude'          => $device['longitude'] ?? null,
                     'last_communication' => $device['last_communication'] ?? null,
-                    'last_sync_at' => date('Y-m-d H:i:s'),
+                    'last_sync_at'       => date('Y-m-d H:i:s'),
                 ];
 
                 if ($existing) {
                     $this->db->update('nayax_devices', $deviceData, 'id = ?', [$existing['id']]);
                 } else {
-                    $deviceData['device_id'] = $device['device_id'];
+                    $deviceData['device_id'] = $deviceId;
                     $this->db->insert('nayax_devices', $deviceData);
                 }
                 $synced++;
@@ -320,6 +330,7 @@ class NayaxController
 
     /**
      * Import transactions from Nayax API for a date range.
+     * Calls GET /v1/machines/{id}/lastSales for each known machine.
      */
     public function processImport(Request $request, Response $response, array $args = []): Response
     {
@@ -339,11 +350,16 @@ class NayaxController
             $skipped = 0;
 
             foreach ($transactions as $txn) {
+                $txnId = $txn['transaction_id'] ?? '';
+                if ($txnId === '') {
+                    continue;
+                }
+
                 // Check if transaction already exists
                 $exists = $this->db->exists(
                     'nayax_transactions',
                     'transaction_id = ?',
-                    [$txn['transaction_id']]
+                    [$txnId]
                 );
 
                 if ($exists) {
@@ -352,24 +368,28 @@ class NayaxController
                 }
 
                 $this->db->insert('nayax_transactions', [
-                    'transaction_id' => $txn['transaction_id'],
-                    'device_id' => $txn['device_id'],
+                    'transaction_id'   => $txnId,
+                    'device_id'        => $txn['device_id'] ?? '',
                     'transaction_date' => $txn['date'],
-                    'amount' => $txn['amount'],
-                    'payment_type' => $txn['payment_type'],
-                    'status' => $txn['status'],
-                    'raw_data' => json_encode($txn['raw']),
+                    'amount'           => $txn['amount'],
+                    'payment_type'     => $txn['payment_type'] ?? 'card',
+                    'status'           => $txn['status'] ?? 'completed',
+                    'raw_data'         => json_encode($txn['raw'] ?? []),
                 ]);
                 $imported++;
             }
 
             // Record the import
             $this->db->insert('nayax_imports', [
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
-                'transactions_imported' => $imported,
-                'transactions_skipped' => $skipped,
-                'imported_by' => $this->auth->user()['id'] ?? null,
+                'import_type'            => 'manual',
+                'date_from'              => $dateFrom,
+                'date_to'                => $dateTo,
+                'transactions_imported'  => $imported,
+                'transactions_skipped'   => $skipped,
+                'records_imported'       => $imported,
+                'records_skipped'        => $skipped,
+                'status'                 => 'success',
+                'imported_by'            => $this->auth->user()['id'] ?? null,
             ]);
 
             $_SESSION['flash_success'] = "Import complete. {$imported} transactions imported, {$skipped} skipped (duplicates).";

@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Cron: Nayax Device Sync
  * Schedule: Hourly
- * Syncs device data from Nayax API
+ * Syncs machine/device data from Nayax API via GET /v1/machines
  */
 
 $container = require __DIR__ . '/bootstrap.php';
@@ -37,44 +37,55 @@ try {
     $created = 0;
 
     foreach ($devices as $device) {
-        $deviceId = $device['DeviceId'] ?? $device['device_id'] ?? null;
-        if (!$deviceId) continue;
+        $deviceId = $device['device_id'] ?? '';
+        if ($deviceId === '') {
+            continue;
+        }
 
         $existing = $db->fetch(
             "SELECT id FROM nayax_devices WHERE device_id = ?",
-            [(string)$deviceId]
+            [$deviceId]
         );
 
         $data = [
-            'device_id' => (string)$deviceId,
-            'device_name' => $device['DeviceName'] ?? $device['device_name'] ?? null,
-            'device_serial' => $device['SerialNumber'] ?? $device['serial_number'] ?? null,
-            'device_status' => $device['Status'] ?? $device['status'] ?? 'unknown',
-            'device_model' => $device['Model'] ?? $device['model'] ?? null,
-            'firmware_version' => $device['FirmwareVersion'] ?? $device['firmware_version'] ?? null,
-            'last_communication' => $device['LastCommunication'] ?? $device['last_communication'] ?? null,
-            'last_sync_at' => date('Y-m-d H:i:s'),
+            'device_name'        => $device['name'] ?? null,
+            'device_serial'      => $device['serial'] ?? null,
+            'device_model'       => $device['model'] ?? null,
+            'device_status'      => $device['status'] ?? 'unknown',
+            'nayax_device_id'    => $deviceId,
+            'vpos_id'            => $device['vpos_id'] ?? null,
+            'firmware_version'   => $device['firmware_version'] ?? null,
+            'latitude'           => $device['latitude'] ?? null,
+            'longitude'          => $device['longitude'] ?? null,
+            'last_communication' => $device['last_communication'] ?? null,
+            'last_sync_at'       => date('Y-m-d H:i:s'),
         ];
 
         if ($existing) {
             $db->update('nayax_devices', $data, 'id = ?', [$existing['id']]);
             $synced++;
         } else {
+            $data['device_id'] = $deviceId;
             $db->insert('nayax_devices', $data);
             $created++;
         }
     }
 
+    $settings->set('nayax_last_sync', date('Y-m-d H:i:s'));
     echo "Sync complete. Created: {$created}, Updated: {$synced}\n";
 
 } catch (\Exception $e) {
     echo "Error: " . $e->getMessage() . "\n";
-    $db->insert('nayax_api_logs', [
-        'method' => 'GET',
-        'endpoint' => '/devices',
-        'status_code' => 0,
-        'response_data' => json_encode(['error' => $e->getMessage()]),
-    ]);
+    try {
+        $db->insert('nayax_api_logs', [
+            'method' => 'GET',
+            'endpoint' => '/v1/machines',
+            'status_code' => 0,
+            'response_data' => json_encode(['error' => $e->getMessage()]),
+        ]);
+    } catch (\Exception $logEx) {
+        // Ignore logging failures
+    }
     exit(1);
 }
 
