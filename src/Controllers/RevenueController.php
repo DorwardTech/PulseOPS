@@ -134,10 +134,9 @@ class RevenueController
     public function create(Request $request, Response $response): Response
     {
         $machines = $this->db->fetchAll(
-            "SELECT m.id, m.name, m.machine_code, c.name AS customer_name
+            "SELECT m.id, m.name, m.machine_code, m.status, c.name AS customer_name
              FROM machines m
              LEFT JOIN customers c ON m.customer_id = c.id
-             WHERE m.status = 'active'
              ORDER BY m.name"
         );
 

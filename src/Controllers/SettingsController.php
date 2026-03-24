@@ -39,6 +39,41 @@ class SettingsController
             $this->settings->getByCategory('revenue')
         );
 
+        // Data for Users tab
+        $users = $this->db->fetchAll(
+            "SELECT u.*, r.name AS role_name
+             FROM users u
+             LEFT JOIN roles r ON u.role_id = r.id
+             ORDER BY u.full_name ASC"
+        );
+
+        // Data for Roles tab
+        $roles = $this->db->fetchAll(
+            "SELECT r.*, COUNT(u.id) AS users_count
+             FROM roles r
+             LEFT JOIN users u ON r.id = u.role_id
+             GROUP BY r.id
+             ORDER BY r.name ASC"
+        );
+
+        // Data for Job Statuses tab
+        $jobStatuses = $this->db->fetchAll(
+            "SELECT js.*, COUNT(j.id) AS job_count
+             FROM job_statuses js
+             LEFT JOIN maintenance_jobs j ON js.id = j.status_id
+             GROUP BY js.id
+             ORDER BY js.sort_order ASC, js.name ASC"
+        );
+
+        // Data for Machine Types tab
+        $machineTypes = $this->db->fetchAll(
+            "SELECT mt.*, COUNT(m.id) AS machines_count
+             FROM machine_types mt
+             LEFT JOIN machines m ON mt.id = m.machine_type_id
+             GROUP BY mt.id
+             ORDER BY mt.name ASC"
+        );
+
         return $this->twig->render($response, 'admin/settings/index.twig', [
             'active_page' => 'settings',
             'auth_user' => $this->auth->user(),
@@ -47,6 +82,10 @@ class SettingsController
             'flash_error' => $flashError,
             'active_tab' => $activeTab,
             'settings' => $settings,
+            'users' => $users,
+            'roles' => $roles,
+            'job_statuses' => $jobStatuses,
+            'machine_types' => $machineTypes,
         ]);
     }
 

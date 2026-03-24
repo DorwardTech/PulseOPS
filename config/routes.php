@@ -45,10 +45,12 @@ return function (App $app) {
         $group->get('/machines/{id:[0-9]+}', [MachinesController::class, 'show']);
         $group->get('/machines/{id:[0-9]+}/edit', [MachinesController::class, 'edit']);
         $group->post('/machines/{id:[0-9]+}', [MachinesController::class, 'update']);
+        $group->post('/machines/{id:[0-9]+}/delete', [MachinesController::class, 'delete']);
         $group->delete('/machines/{id:[0-9]+}', [MachinesController::class, 'delete']);
         $group->get('/machines/import', [MachinesController::class, 'showImport']);
         $group->post('/machines/import', [MachinesController::class, 'import']);
         $group->post('/machines/{id:[0-9]+}/photos', [MachinesController::class, 'uploadPhoto']);
+        $group->post('/machines/{id:[0-9]+}/photos/{photoId:[0-9]+}/delete', [MachinesController::class, 'deletePhoto']);
         $group->delete('/machines/{id:[0-9]+}/photos/{photoId:[0-9]+}', [MachinesController::class, 'deletePhoto']);
 
         // Customers
@@ -58,6 +60,7 @@ return function (App $app) {
         $group->get('/customers/{id:[0-9]+}', [CustomersController::class, 'show']);
         $group->get('/customers/{id:[0-9]+}/edit', [CustomersController::class, 'edit']);
         $group->post('/customers/{id:[0-9]+}', [CustomersController::class, 'update']);
+        $group->post('/customers/{id:[0-9]+}/delete', [CustomersController::class, 'delete']);
         $group->delete('/customers/{id:[0-9]+}', [CustomersController::class, 'delete']);
         $group->get('/customers/{id:[0-9]+}/portal', [CustomersController::class, 'portalUsers']);
         $group->post('/customers/{id:[0-9]+}/portal', [CustomersController::class, 'createPortalUser']);
@@ -70,11 +73,14 @@ return function (App $app) {
         $group->get('/jobs/{id:[0-9]+}', [JobsController::class, 'show']);
         $group->get('/jobs/{id:[0-9]+}/edit', [JobsController::class, 'edit']);
         $group->post('/jobs/{id:[0-9]+}', [JobsController::class, 'update']);
+        $group->post('/jobs/{id:[0-9]+}/delete', [JobsController::class, 'delete']);
         $group->delete('/jobs/{id:[0-9]+}', [JobsController::class, 'delete']);
         $group->post('/jobs/{id:[0-9]+}/notes', [JobsController::class, 'addNote']);
         $group->post('/jobs/{id:[0-9]+}/photos', [JobsController::class, 'uploadPhoto']);
+        $group->post('/jobs/{id:[0-9]+}/photos/{photoId:[0-9]+}/delete', [JobsController::class, 'deletePhoto']);
         $group->delete('/jobs/{id:[0-9]+}/photos/{photoId:[0-9]+}', [JobsController::class, 'deletePhoto']);
         $group->post('/jobs/{id:[0-9]+}/parts', [JobsController::class, 'addPart']);
+        $group->post('/jobs/{id:[0-9]+}/parts/{partId:[0-9]+}/delete', [JobsController::class, 'deletePart']);
         $group->delete('/jobs/{id:[0-9]+}/parts/{partId:[0-9]+}', [JobsController::class, 'deletePart']);
         $group->post('/jobs/{id:[0-9]+}/status', [JobsController::class, 'updateStatus']);
 
@@ -85,6 +91,7 @@ return function (App $app) {
         $group->get('/revenue/{id:[0-9]+}', [RevenueController::class, 'show']);
         $group->get('/revenue/{id:[0-9]+}/edit', [RevenueController::class, 'edit']);
         $group->post('/revenue/{id:[0-9]+}', [RevenueController::class, 'update']);
+        $group->post('/revenue/{id:[0-9]+}/delete', [RevenueController::class, 'delete']);
         $group->delete('/revenue/{id:[0-9]+}', [RevenueController::class, 'delete']);
         $group->post('/revenue/{id:[0-9]+}/approve', [RevenueController::class, 'approve']);
         $group->get('/revenue/by-machine', [RevenueController::class, 'byMachine']);
@@ -100,6 +107,7 @@ return function (App $app) {
         $group->post('/commissions/{id:[0-9]+}/pay', [CommissionsController::class, 'markPaid']);
         $group->post('/commissions/{id:[0-9]+}/void', [CommissionsController::class, 'void']);
         $group->post('/commissions/{id:[0-9]+}/line-items', [CommissionsController::class, 'addLineItem']);
+        $group->post('/commissions/{id:[0-9]+}/line-items/{itemId:[0-9]+}/delete', [CommissionsController::class, 'deleteLineItem']);
         $group->delete('/commissions/{id:[0-9]+}/line-items/{itemId:[0-9]+}', [CommissionsController::class, 'deleteLineItem']);
         $group->post('/commissions/{id:[0-9]+}/recalculate', [CommissionsController::class, 'recalculate']);
 
