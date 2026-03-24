@@ -197,14 +197,37 @@ class CommissionsController
             [$customerId]
         );
 
-        $result = CommissionCalculator::calculate(
-            revenueEntries: $revenueEntries,
-            jobCosts: $jobCosts,
-            commissionRate: $commissionRate,
-            processingFee: $processingFee,
-            carryForward: $carryForward,
-            machineOverrides: $machineOverrides
-        );
+        // Aggregate revenue entries into totals
+        $totalCash = 0;
+        $totalCard = 0;
+        $totalPrepaid = 0;
+        $totalCardTransactions = 0;
+        foreach ($revenueEntries as $entry) {
+            $totalCash += (float) ($entry['cash_amount'] ?? 0);
+            $totalCard += (float) ($entry['card_amount'] ?? 0);
+            $totalPrepaid += (float) ($entry['prepaid_amount'] ?? 0);
+            $totalCardTransactions += (int) ($entry['card_transactions'] ?? 0);
+        }
+
+        // Aggregate job costs
+        $totalPartsCost = 0;
+        $totalLabourCost = 0;
+        foreach ($jobCosts as $job) {
+            $totalPartsCost += (float) ($job['parts_cost'] ?? 0);
+            $totalLabourCost += (float) ($job['labour_cost'] ?? 0);
+        }
+
+        $result = CommissionCalculator::calculate([
+            'cash' => $totalCash,
+            'card' => $totalCard,
+            'prepaid' => $totalPrepaid,
+            'card_transactions' => $totalCardTransactions,
+            'commission_rate' => $commissionRate,
+            'processing_fee' => $processingFee,
+            'parts_cost' => $totalPartsCost,
+            'labour_cost' => $totalLabourCost,
+            'carry_forward_in' => $carryForward,
+        ]);
 
         // 5. Store in commission_payments
         $authUser = $this->auth->user();
@@ -512,14 +535,37 @@ class CommissionsController
             [$customerId]
         );
 
-        $result = CommissionCalculator::calculate(
-            revenueEntries: $revenueEntries,
-            jobCosts: $jobCosts,
-            commissionRate: $commissionRate,
-            processingFee: $processingFee,
-            carryForward: $carryForward,
-            machineOverrides: $machineOverrides
-        );
+        // Aggregate revenue entries into totals
+        $totalCash = 0;
+        $totalCard = 0;
+        $totalPrepaid = 0;
+        $totalCardTransactions = 0;
+        foreach ($revenueEntries as $entry) {
+            $totalCash += (float) ($entry['cash_amount'] ?? 0);
+            $totalCard += (float) ($entry['card_amount'] ?? 0);
+            $totalPrepaid += (float) ($entry['prepaid_amount'] ?? 0);
+            $totalCardTransactions += (int) ($entry['card_transactions'] ?? 0);
+        }
+
+        // Aggregate job costs
+        $totalPartsCost = 0;
+        $totalLabourCost = 0;
+        foreach ($jobCosts as $job) {
+            $totalPartsCost += (float) ($job['parts_cost'] ?? 0);
+            $totalLabourCost += (float) ($job['labour_cost'] ?? 0);
+        }
+
+        $result = CommissionCalculator::calculate([
+            'cash' => $totalCash,
+            'card' => $totalCard,
+            'prepaid' => $totalPrepaid,
+            'card_transactions' => $totalCardTransactions,
+            'commission_rate' => $commissionRate,
+            'processing_fee' => $processingFee,
+            'parts_cost' => $totalPartsCost,
+            'labour_cost' => $totalLabourCost,
+            'carry_forward_in' => $carryForward,
+        ]);
 
         // Include manual adjustment line items
         $adjustments = $this->db->fetchColumn(

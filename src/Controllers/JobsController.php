@@ -98,7 +98,7 @@ class JobsController
             'flash_success' => $flashSuccess,
             'flash_error' => $flashError,
             'jobs' => $jobs,
-            'statuses' => $statuses,
+            'job_statuses' => $statuses,
             'machines' => $machines,
             'users' => $users,
             'filters' => [
@@ -135,7 +135,7 @@ class JobsController
             'csrf_token' => $_SESSION['csrf_token'] ?? '',
             'flash_error' => $flashError,
             'machines' => $machines,
-            'statuses' => $statuses,
+            'job_statuses' => $statuses,
             'users' => $users,
         ]);
     }
@@ -241,7 +241,7 @@ class JobsController
             'notes' => $notes,
             'photos' => $photos,
             'parts' => $parts,
-            'statuses' => $statuses,
+            'job_statuses' => $statuses,
         ]);
     }
 
@@ -273,7 +273,7 @@ class JobsController
             'flash_error' => $flashError,
             'job' => $job,
             'machines' => $machines,
-            'statuses' => $statuses,
+            'job_statuses' => $statuses,
             'users' => $users,
         ]);
     }
