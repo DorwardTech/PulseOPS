@@ -766,4 +766,109 @@ class SettingsController
         $_SESSION['flash_success'] = 'Password changed successfully.';
         return $response->withHeader('Location', '/settings/profile')->withStatus(302);
     }
+
+    /**
+     * Show purge data page.
+     */
+    public function purgeData(Request $request, Response $response): Response
+    {
+        if (!$this->auth->hasPermission('*')) {
+            $_SESSION['flash_error'] = 'Access denied.';
+            return $response->withHeader('Location', '/settings')->withStatus(302);
+        }
+
+        $flashSuccess = $_SESSION['flash_success'] ?? null;
+        $flashError = $_SESSION['flash_error'] ?? null;
+        unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
+        $counts = [
+            'revenue' => (int) $this->db->fetchColumn("SELECT COUNT(*) FROM revenue"),
+            'commission_payments' => (int) $this->db->fetchColumn("SELECT COUNT(*) FROM commission_payments"),
+            'commission_line_items' => (int) $this->db->fetchColumn("SELECT COUNT(*) FROM commission_line_items"),
+            'nayax_transactions' => (int) $this->db->fetchColumn("SELECT COUNT(*) FROM nayax_transactions"),
+        ];
+
+        return $this->twig->render($response, 'admin/settings/purge-data.twig', [
+            'active_page' => 'purge-data',
+            'auth_user' => $this->auth->user(),
+            'csrf_token' => $_SESSION['csrf_token'] ?? '',
+            'flash_success' => $flashSuccess,
+            'flash_error' => $flashError,
+            'counts' => $counts,
+        ]);
+    }
+
+    /**
+     * Execute data purge.
+     */
+    public function executePurge(Request $request, Response $response): Response
+    {
+        if (!$this->auth->hasPermission('*')) {
+            $_SESSION['flash_error'] = 'Access denied.';
+            return $response->withHeader('Location', '/settings')->withStatus(302);
+        }
+
+        $data = $request->getParsedBody();
+        $targets = $data['targets'] ?? [];
+        $confirm = $data['confirm'] ?? '';
+
+        if ($confirm !== 'PURGE') {
+            $_SESSION['flash_error'] = 'You must type PURGE to confirm.';
+            return $response->withHeader('Location', '/settings/purge-data')->withStatus(302);
+        }
+
+        if (empty($targets)) {
+            $_SESSION['flash_error'] = 'No data selected to purge.';
+            return $response->withHeader('Location', '/settings/purge-data')->withStatus(302);
+        }
+
+        $purged = [];
+
+        if (in_array('nayax_transactions', $targets)) {
+            $count = (int) $this->db->fetchColumn("SELECT COUNT(*) FROM nayax_transactions");
+            $this->db->execute("DELETE FROM nayax_transactions");
+            $purged[] = "{$count} Nayax transactions";
+        }
+
+        if (in_array('commission_line_items', $targets)) {
+            $count = (int) $this->db->fetchColumn("SELECT COUNT(*) FROM commission_line_items");
+            $this->db->execute("DELETE FROM commission_line_items");
+            $purged[] = "{$count} commission line items";
+        }
+
+        if (in_array('commission_payments', $targets)) {
+            // Delete line items first to avoid orphans
+            $liCount = (int) $this->db->fetchColumn("SELECT COUNT(*) FROM commission_line_items");
+            if ($liCount > 0) {
+                $this->db->execute("DELETE FROM commission_line_items");
+                $purged[] = "{$liCount} commission line items";
+            }
+            $count = (int) $this->db->fetchColumn("SELECT COUNT(*) FROM commission_payments");
+            $this->db->execute("DELETE FROM commission_payments");
+            $purged[] = "{$count} commission payments";
+        }
+
+        if (in_array('revenue', $targets)) {
+            $count = (int) $this->db->fetchColumn("SELECT COUNT(*) FROM revenue");
+            $this->db->execute("DELETE FROM revenue");
+            $purged[] = "{$count} revenue records";
+        }
+
+        $authUser = $this->auth->user();
+        try {
+            $this->db->insert('activity_logs', [
+                'action' => 'purge_data',
+                'entity_type' => 'system',
+                'entity_id' => 0,
+                'user_id' => $authUser['id'] ?? null,
+                'new_values' => json_encode(['purged' => $purged, 'targets' => $targets]),
+                'ip_address' => $_SERVER['REMOTE_ADDR'] ?? null,
+            ]);
+        } catch (\Exception $e) {
+            error_log("Purge audit log error: " . $e->getMessage());
+        }
+
+        $_SESSION['flash_success'] = 'Purged: ' . implode(', ', $purged) . '.';
+        return $response->withHeader('Location', '/settings/purge-data')->withStatus(302);
+    }
 }
