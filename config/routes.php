@@ -115,11 +115,13 @@ return function (App $app) {
         $group->get('/nayax', [NayaxController::class, 'index']);
         $group->get('/nayax/devices', [NayaxController::class, 'devices']);
         $group->post('/nayax/devices/sync', [NayaxController::class, 'syncDevices']);
+        $group->post('/nayax/sync-devices', [NayaxController::class, 'syncDevices']);
         $group->post('/nayax/devices/{id:[0-9]+}/link', [NayaxController::class, 'linkDevice']);
         $group->post('/nayax/devices/{id:[0-9]+}/unlink', [NayaxController::class, 'unlinkDevice']);
         $group->get('/nayax/transactions', [NayaxController::class, 'transactions']);
         $group->get('/nayax/import', [NayaxController::class, 'showImport']);
         $group->post('/nayax/import', [NayaxController::class, 'processImport']);
+        $group->post('/nayax/import-transactions', [NayaxController::class, 'processImport']);
 
         // Analytics
         $group->get('/analytics', [AnalyticsController::class, 'index']);
