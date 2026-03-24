@@ -111,22 +111,21 @@ class NayaxController
                     [$device['device_id']]
                 );
 
+                $deviceData = [
+                    'device_name' => $device['name'],
+                    'device_serial' => $device['serial'],
+                    'device_model' => $device['model'] ?? null,
+                    'device_status' => $device['status'],
+                    'nayax_device_id' => $device['device_id'],
+                    'last_communication' => $device['last_communication'] ?? null,
+                    'last_sync_at' => date('Y-m-d H:i:s'),
+                ];
+
                 if ($existing) {
-                    $this->db->update('nayax_devices', [
-                        'device_name' => $device['name'],
-                        'device_serial' => $device['serial'],
-                        'device_status' => $device['status'],
-                        'updated_at' => date('Y-m-d H:i:s'),
-                    ], 'id = ?', [$existing['id']]);
+                    $this->db->update('nayax_devices', $deviceData, 'id = ?', [$existing['id']]);
                 } else {
-                    $this->db->insert('nayax_devices', [
-                        'device_id' => $device['device_id'],
-                        'device_name' => $device['name'],
-                        'device_serial' => $device['serial'],
-                        'device_status' => $device['status'],
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s'),
-                    ]);
+                    $deviceData['device_id'] = $device['device_id'];
+                    $this->db->insert('nayax_devices', $deviceData);
                 }
                 $synced++;
             }
@@ -276,7 +275,7 @@ class NayaxController
         unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 
         $recentImports = $this->db->fetchAll(
-            "SELECT * FROM nayax_imports ORDER BY created_at DESC LIMIT 10"
+            "SELECT * FROM nayax_imports ORDER BY import_date DESC LIMIT 10"
         );
 
         return $this->twig->render($response, 'admin/nayax/import.twig', [
