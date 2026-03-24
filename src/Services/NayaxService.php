@@ -4,13 +4,16 @@ declare(strict_types=1);
 namespace App\Services;
 
 /**
- * Nayax Lynx API Service
+ * Nayax Lynx Operational API Service
  *
- * Handles Nayax API integrations for transaction imports,
- * device management, and remote operations.
+ * Endpoints used (from swagger.json):
+ *   GET /v1/machines          — list machines (our "devices")
+ *   GET /v1/machines/{id}     — single machine info
+ *   GET /v1/machines/{id}/lastSales — transactions for a machine
+ *   GET /v1/machines/{id}/status    — machine status (cash box, counters)
+ *   GET /v1/devices           — physical device hardware info
  *
- * API Documentation: Nayax Operational Lynx API v1
- * Authentication: Direct token from Nayax User Tokens page
+ * Authentication: Bearer token from Nayax User Tokens page
  */
 class NayaxService
 {
@@ -78,7 +81,7 @@ class NayaxService
     }
 
     /**
-     * Test API connection
+     * Test API connection by fetching a small set of machines.
      */
     public function testConnection(): array
     {
@@ -90,7 +93,7 @@ class NayaxService
         }
 
         try {
-            $response = $this->request('GET', '/v1/machines', ['Take' => 5]);
+            $response = $this->request('GET', '/v1/machines', ['ResultsLimit' => 5]);
 
             if ($response['status'] === 200) {
                 $machines = $response['data'] ?? [];
@@ -125,113 +128,108 @@ class NayaxService
     }
 
     /**
-     * Get devices list from Nayax API
+     * Get machines from Nayax API (these are the "devices" in our system).
+     * GET /v1/machines — returns array of MachineInfo objects.
+     *
+     * @return array Normalised device records ready for DB upsert
      */
     public function getDevices(): array
     {
-        $machines = $this->getMachines(1000, 0);
+        $machines = $this->fetchAllMachines();
 
-        return array_map(function ($m) {
+        return array_map(function (array $m): array {
+            $statusBit = (int) ($m['MachineStatusBit'] ?? 0);
+
             return [
-                'device_id' => $m['MachineID'] ?? '',
-                'name' => $m['MachineName'] ?? '',
-                'serial' => $m['DeviceSerialNumber'] ?? '',
-                'model' => $m['DeviceModel'] ?? $m['MachineModel'] ?? null,
-                'status' => ($m['MachineStatusBit'] ?? 0) == 1 ? 'online' : 'offline',
-                'last_communication' => $m['LastCommunicationDate'] ?? $m['LastCommunication'] ?? null,
-                'last_transaction' => null,
-                'raw' => $m,
+                'device_id'          => (string) ($m['MachineID'] ?? ''),
+                'name'               => $m['MachineName'] ?? '',
+                'serial'             => $m['DeviceSerialNumber'] ?? $m['SerialNumber'] ?? '',
+                'model'              => $m['MachineModelID'] ?? null,
+                'status'             => $statusBit === 1 ? 'online' : 'offline',
+                'vpos_id'            => isset($m['VPOSID']) ? (string) $m['VPOSID'] : null,
+                'device_hardware_id' => isset($m['DeviceID']) ? (string) $m['DeviceID'] : null,
+                'firmware_version'   => $m['VPOSSerialNumber'] ?? null,
+                'latitude'           => $m['GeoLatitude'] ?? null,
+                'longitude'          => $m['GeoLongitude'] ?? null,
+                'last_communication' => $m['LastUpdated'] ?? null,
+                'raw'                => $m,
             ];
         }, $machines);
     }
 
     /**
-     * Get transactions for a date range
+     * Get transactions (lastSales) for all linked machines in a date range.
+     *
+     * The Lynx API has NO global /v1/transactions endpoint.
+     * We must call GET /v1/machines/{MachineID}/lastSales per machine.
+     * Response: array of MachineLastSales objects.
      */
-    public function getTransactions(string $dateFrom, string $dateTo, array $deviceIds = []): array
+    public function getTransactions(string $dateFrom, string $dateTo, array $machineIds = []): array
     {
         if (!$this->isConfigured()) {
             return [];
         }
 
+        // If no specific machines requested, get all known machines from our DB
+        if (empty($machineIds)) {
+            $rows = $this->db->fetchAll(
+                "SELECT device_id FROM nayax_devices WHERE device_id IS NOT NULL AND device_id != ''"
+            );
+            $machineIds = array_column($rows, 'device_id');
+        }
+
+        if (empty($machineIds)) {
+            error_log("Nayax getTransactions: no machines to query");
+            return [];
+        }
+
         $allTransactions = [];
 
-        try {
-            // Nayax API expects datetime format with T separator
-            $fromDateTime = str_contains($dateFrom, 'T') ? $dateFrom : $dateFrom . 'T00:00:00';
-            $toDateTime = str_contains($dateTo, 'T') ? $dateTo : $dateTo . 'T23:59:59';
+        foreach ($machineIds as $machineId) {
+            try {
+                $sales = $this->getLastSales((int) $machineId, $dateFrom, $dateTo);
 
-            $params = [
-                'FromDate' => $fromDateTime,
-                'ToDate' => $toDateTime,
-                'Take' => 1000,
-                'Skip' => 0
-            ];
+                foreach ($sales as $sale) {
+                    $txnDate = $sale['AuthorizationDateTimeGMT']
+                        ?? $sale['MachineAuthorizationTime']
+                        ?? $sale['SettlementDateTimeGMT']
+                        ?? null;
 
-            if (!empty($this->operatorId)) {
-                $params['OperatorId'] = $this->operatorId;
-            }
-
-            $response = $this->request('GET', '/v1/transactions', $params);
-
-            if ($response['status'] === 200) {
-                $data = $response['data'] ?? [];
-
-                // API may return transactions nested under a key or as a bare array
-                $rawTransactions = $data;
-                if (isset($data['Transactions'])) {
-                    $rawTransactions = $data['Transactions'];
-                } elseif (isset($data['transactions'])) {
-                    $rawTransactions = $data['transactions'];
-                } elseif (isset($data['Items'])) {
-                    $rawTransactions = $data['Items'];
-                } elseif (isset($data['items'])) {
-                    $rawTransactions = $data['items'];
-                } elseif (isset($data['Data'])) {
-                    $rawTransactions = $data['Data'];
-                }
-
-                // If data is still associative (not a list), it's likely a wrapper object
-                if (!empty($rawTransactions) && !array_is_list($rawTransactions)) {
-                    error_log("Nayax getTransactions: unexpected response structure. Keys: " . implode(', ', array_keys($rawTransactions)));
-                    $rawTransactions = [];
-                }
-
-                foreach ($rawTransactions as $txn) {
-                    $deviceId = (string) ($txn['MachineID'] ?? $txn['machineID'] ?? $txn['DeviceId'] ?? '');
-
-                    if (!empty($deviceIds) && !in_array($deviceId, $deviceIds)) {
-                        continue;
+                    // Filter by date range
+                    if ($txnDate) {
+                        $txnDay = substr($txnDate, 0, 10);
+                        if ($txnDay < $dateFrom || $txnDay > $dateTo) {
+                            continue;
+                        }
                     }
 
                     $allTransactions[] = [
-                        'transaction_id' => $txn['TransactionID'] ?? $txn['transactionID'] ?? $txn['Id'] ?? uniqid('txn_'),
-                        'device_id' => $deviceId,
-                        'date' => $txn['TransactionDate'] ?? $txn['transactionDate'] ?? $txn['Date'] ?? date('Y-m-d H:i:s'),
-                        'amount' => (float) ($txn['Amount'] ?? $txn['amount'] ?? $txn['TransactionAmount'] ?? 0),
-                        'payment_type' => $txn['PaymentType'] ?? $txn['paymentType'] ?? $txn['Type'] ?? 'card',
-                        'status' => $txn['Status'] ?? $txn['status'] ?? $txn['TransactionStatus'] ?? 'completed',
-                        'card_type' => $txn['CardType'] ?? $txn['cardType'] ?? null,
-                        'product_name' => $txn['ProductName'] ?? $txn['productName'] ?? null,
-                        'raw' => $txn
+                        'transaction_id' => (string) ($sale['TransactionID'] ?? uniqid('txn_')),
+                        'device_id'      => (string) ($sale['MachineID'] ?? $machineId),
+                        'date'           => $txnDate ?? date('Y-m-d H:i:s'),
+                        'amount'         => (float) ($sale['SettlementValue'] ?? $sale['AuthorizationValue'] ?? 0),
+                        'payment_type'   => strtolower($sale['PaymentMethod'] ?? 'card'),
+                        'status'         => 'completed',
+                        'machine_name'   => $sale['MachineName'] ?? null,
+                        'product_name'   => $sale['ProductName'] ?? null,
+                        'card_brand'     => $sale['CardBrand'] ?? null,
+                        'currency'       => $sale['CurrencyCode'] ?? null,
+                        'raw'            => $sale,
                     ];
                 }
-            } else {
-                error_log("Nayax getTransactions: API returned status {$response['status']}");
+            } catch (\Exception $e) {
+                error_log("Nayax getTransactions: error for machine {$machineId}: " . $e->getMessage());
             }
-
-            if (empty($allTransactions)) {
-                error_log("Nayax getTransactions: 0 transactions returned for {$fromDateTime} to {$toDateTime}. Response keys: " . implode(', ', array_keys($response['data'] ?? [])));
-            }
-        } catch (\Exception $e) {
-            error_log("Nayax getTransactions error: " . $e->getMessage());
         }
 
         return $allTransactions;
     }
 
     /**
-     * Get last sales for a specific machine
+     * Get last sales for a specific machine.
+     * GET /v1/machines/{MachineID}/lastSales
+     *
+     * @return array Raw MachineLastSales objects from API
      */
     public function getLastSales(int $machineId, ?string $from = null, ?string $to = null): array
     {
@@ -240,21 +238,68 @@ class NayaxService
         }
 
         try {
-            if ($from && $to) {
-                $params = [
-                    'fromDate' => $from . 'T00:00:00',
-                    'toDate' => $to . 'T23:59:59'
-                ];
-                $response = $this->request('GET', "/v1/machines/{$machineId}/sales", $params);
-            } else {
-                $response = $this->request('GET', "/v1/machines/{$machineId}/lastSales");
-            }
+            $response = $this->request('GET', "/v1/machines/{$machineId}/lastSales");
 
             if ($response['status'] === 200) {
                 return $response['data'] ?? [];
             }
         } catch (\Exception $e) {
-            error_log("Nayax getLastSales error: " . $e->getMessage());
+            error_log("Nayax getLastSales error for machine {$machineId}: " . $e->getMessage());
+        }
+
+        return [];
+    }
+
+    /**
+     * Get machine status (cash box level, counters, etc).
+     * GET /v1/machines/{MachineID}/status
+     */
+    public function getMachineStatus(int $machineId): ?array
+    {
+        if (!$this->isConfigured()) {
+            return null;
+        }
+
+        try {
+            $response = $this->request('GET', "/v1/machines/{$machineId}/status");
+
+            if ($response['status'] === 200) {
+                return $response['data'] ?? null;
+            }
+        } catch (\Exception $e) {
+            error_log("Nayax getMachineStatus error for machine {$machineId}: " . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Get physical device hardware info.
+     * GET /v1/devices — returns array of DeviceExtra objects.
+     */
+    public function getHardwareDevices(int $pageSize = 1000): array
+    {
+        if (!$this->isConfigured()) {
+            return [];
+        }
+
+        try {
+            $params = [
+                'pageNumber' => 1,
+                'pageSize' => $pageSize,
+            ];
+
+            if (!empty($this->operatorId)) {
+                $params['ActorId'] = $this->operatorId;
+            }
+
+            $response = $this->request('GET', '/v1/devices', $params);
+
+            if ($response['status'] === 200) {
+                return $response['data'] ?? [];
+            }
+        } catch (\Exception $e) {
+            error_log("Nayax getHardwareDevices error: " . $e->getMessage());
         }
 
         return [];
@@ -271,34 +316,57 @@ class NayaxService
     // ─── Private helpers ───────────────────────────────────────────────
 
     /**
-     * Get machines from Nayax API
+     * Fetch all machines with pagination.
+     * GET /v1/machines uses ResultsLimit / ResultsOffset.
      */
-    private function getMachines(int $take = 100, int $skip = 0): array
+    private function fetchAllMachines(): array
     {
         if (!$this->isConfigured()) {
             return [];
         }
 
+        $all = [];
+        $limit = 100;
+        $offset = 0;
+
         try {
-            $params = [
-                'Take' => $take,
-                'Skip' => $skip
-            ];
+            while (true) {
+                $params = [
+                    'ResultsLimit' => $limit,
+                    'ResultsOffset' => $offset,
+                ];
 
-            if (!empty($this->operatorId)) {
-                $params['OperatorId'] = $this->operatorId;
-            }
+                if (!empty($this->operatorId)) {
+                    $params['ActorID'] = $this->operatorId;
+                }
 
-            $response = $this->request('GET', '/v1/machines', $params);
+                $response = $this->request('GET', '/v1/machines', $params);
 
-            if ($response['status'] === 200) {
-                return $response['data'] ?? [];
+                if ($response['status'] !== 200) {
+                    break;
+                }
+
+                $machines = $response['data'] ?? [];
+                if (empty($machines)) {
+                    break;
+                }
+
+                foreach ($machines as $m) {
+                    $all[] = $m;
+                }
+
+                // If we got fewer than the limit, we've reached the end
+                if (count($machines) < $limit) {
+                    break;
+                }
+
+                $offset += $limit;
             }
         } catch (\Exception $e) {
-            error_log("Nayax getMachines error: " . $e->getMessage());
+            error_log("Nayax fetchAllMachines error: " . $e->getMessage());
         }
 
-        return [];
+        return $all;
     }
 
     /**
@@ -323,8 +391,8 @@ class NayaxService
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 15,
-            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 5,
@@ -398,7 +466,7 @@ class NayaxService
                     json_encode($requestData),
                     json_encode([
                         'status' => $response['status'] ?? null,
-                        'data' => $response['data'] ?? null,
+                        'data_keys' => is_array($response['data'] ?? null) ? array_keys($response['data']) : [],
                         'error' => $response['error'] ?? null
                     ]),
                     $response['status'] ?? 0
