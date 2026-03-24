@@ -208,7 +208,7 @@ class NayaxService
                     'device_id'      => (string) ($sale['MachineID'] ?? $machineId),
                     'date'           => $txnDate ?? date('Y-m-d H:i:s'),
                     'amount'         => (float) ($sale['SettlementValue'] ?? $sale['AuthorizationValue'] ?? 0),
-                    'payment_type'   => strtolower($sale['PaymentMethod'] ?? 'card'),
+                    'payment_type'   => self::normalizePaymentType($sale['PaymentMethod'] ?? 'card'),
                     'status'         => 'completed',
                     'machine_name'   => $sale['MachineName'] ?? null,
                     'product_name'   => $sale['ProductName'] ?? null,
@@ -551,5 +551,37 @@ class NayaxService
         } catch (\Exception $e) {
             error_log("Nayax API Log: {$method} {$endpoint} - Status: " . ($response['status'] ?? 'N/A'));
         }
+    }
+
+    /**
+     * Normalize Nayax PaymentMethod values to standard types used by aggregation.
+     */
+    private static function normalizePaymentType(string $raw): string
+    {
+        $lower = strtolower(trim($raw));
+
+        $map = [
+            'creditcard'  => 'card',
+            'credit card' => 'card',
+            'credit'      => 'card',
+            'debit'       => 'card',
+            'debitcard'   => 'card',
+            'visa'        => 'card',
+            'mastercard'  => 'card',
+            'card'        => 'card',
+            'cash'        => 'cash',
+            'coin'        => 'coin',
+            'coins'       => 'coin',
+            'prepaid'     => 'prepaid',
+            'qr'          => 'qr',
+            'qrcode'      => 'qr',
+            'qr code'     => 'qr',
+            'app'         => 'app',
+            'mifh'        => 'mifh',
+            'mifare'      => 'mifh',
+            'cashless'    => 'card',
+        ];
+
+        return $map[$lower] ?? $lower;
     }
 }
