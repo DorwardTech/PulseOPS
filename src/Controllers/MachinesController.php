@@ -81,7 +81,8 @@ class MachinesController
         );
 
         $machines = $this->db->fetchAll(
-            "SELECT m.*, c.name AS customer_name, mt.name AS type_name
+            "SELECT m.*, c.name AS customer_name, mt.name AS type_name,
+                    (SELECT mp.file_path FROM machine_photos mp WHERE mp.machine_id = m.id ORDER BY mp.is_primary DESC, mp.created_at ASC LIMIT 1) AS photo_url
              FROM machines m
              LEFT JOIN customers c ON m.customer_id = c.id
              LEFT JOIN machine_types mt ON m.machine_type_id = mt.id
@@ -98,19 +99,25 @@ class MachinesController
             "SELECT id, name FROM machine_types ORDER BY name"
         );
 
+        $view = $params['view'] ?? 'list';
+
         return $this->twig->render($response, 'admin/machines/index.twig', $this->viewData([
             'machines' => $machines,
             'customers' => $customers,
             'machine_types' => $machineTypes,
-            'total' => $total,
-            'page' => $page,
-            'per_page' => $perPage,
-            'total_pages' => (int) ceil($total / $perPage),
+            'view' => $view,
+            'pagination' => [
+                'total' => $total,
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total_pages' => (int) ceil($total / $perPage),
+            ],
             'filters' => [
                 'status' => $status,
                 'customer_id' => $customerId,
-                'type' => $typeId,
+                'machine_type_id' => $typeId,
                 'search' => $search,
+                'view' => $view,
             ],
         ]));
     }
@@ -178,7 +185,7 @@ class MachinesController
         $id = (int) $args['id'];
 
         $machine = $this->db->fetch(
-            "SELECT m.*, c.name AS customer_name, mt.name AS type_name
+            "SELECT m.*, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone, mt.name AS type_name
              FROM machines m
              LEFT JOIN customers c ON m.customer_id = c.id
              LEFT JOIN machine_types mt ON m.machine_type_id = mt.id
@@ -389,6 +396,7 @@ class MachinesController
             return $response->withHeader('Location', '/machines')->withStatus(302);
         }
 
+        $data = $request->getParsedBody();
         $uploadedFiles = $request->getUploadedFiles();
         $photo = $uploadedFiles['photo'] ?? null;
 
@@ -410,9 +418,12 @@ class MachinesController
         $this->db->insert('machine_photos', [
             'machine_id' => $machineId,
             'filename' => $filename,
-            'original_filename' => $photo->getClientFilename(),
+            'original_name' => $photo->getClientFilename(),
             'file_path' => "/uploads/machines/{$filename}",
-            'created_at' => date('Y-m-d H:i:s'),
+            'mime_type' => $photo->getClientMediaType(),
+            'file_size' => $photo->getSize(),
+            'description' => trim((string) ($data['caption'] ?? '')),
+            'uploaded_by' => $this->auth->user()['id'] ?? null,
         ]);
 
         $_SESSION['flash_success'] = 'Photo uploaded successfully.';

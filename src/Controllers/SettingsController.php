@@ -384,8 +384,6 @@ class SettingsController
             'slug' => $slug,
             'permissions' => json_encode(array_values($permissions)),
             'is_system' => 0,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
         $_SESSION['flash_success'] = 'Role created successfully.';
@@ -415,7 +413,6 @@ class SettingsController
             'name' => trim($data['name'] ?? $role['name']),
             'slug' => trim($data['slug'] ?? $role['slug']),
             'permissions' => json_encode(array_values($permissions)),
-            'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$roleId]);
 
         $_SESSION['flash_success'] = 'Role updated successfully.';
@@ -499,8 +496,6 @@ class SettingsController
             'color' => trim($data['color'] ?? '#6b7280'),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
             'is_default' => !empty($data['is_default']) ? 1 : 0,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
         $_SESSION['flash_success'] = 'Job status created successfully.';
@@ -521,7 +516,6 @@ class SettingsController
             'color' => trim($data['color'] ?? '#6b7280'),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
             'is_default' => !empty($data['is_default']) ? 1 : 0,
-            'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$statusId]);
 
         $_SESSION['flash_success'] = 'Job status updated successfully.';
@@ -589,10 +583,7 @@ class SettingsController
 
         $this->db->insert('machine_types', [
             'name' => trim($data['name'] ?? ''),
-            'slug' => trim($data['slug'] ?? ''),
             'description' => trim($data['description'] ?? ''),
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
         $_SESSION['flash_success'] = 'Machine type created successfully.';
@@ -609,9 +600,7 @@ class SettingsController
 
         $this->db->update('machine_types', [
             'name' => trim($data['name'] ?? ''),
-            'slug' => trim($data['slug'] ?? ''),
             'description' => trim($data['description'] ?? ''),
-            'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$typeId]);
 
         $_SESSION['flash_success'] = 'Machine type updated successfully.';
@@ -695,6 +684,7 @@ class SettingsController
         // Update session data
         $_SESSION['user']['full_name'] = trim($data['full_name'] ?? '');
         $_SESSION['user']['email'] = $email;
+        $_SESSION['user']['phone'] = trim($data['phone'] ?? '');
 
         $_SESSION['flash_success'] = 'Profile updated successfully.';
         return $response->withHeader('Location', '/settings/profile')->withStatus(302);

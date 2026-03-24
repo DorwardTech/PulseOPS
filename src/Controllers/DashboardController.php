@@ -78,11 +78,42 @@ class DashboardController
              LIMIT 5"
         );
 
-        // Revenue chart data - last 6 months grouped by month
+        // Revenue change percentage
+        $revenueChange = $lastMonthRevenue > 0
+            ? round((($thisMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1)
+            : 0;
+
+        // Top machines by revenue (last 30 days)
+        $thirtyDaysAgo = date('Y-m-d', strtotime('-30 days'));
+        $topMachines = $this->db->fetchAll(
+            "SELECT m.id, m.name, m.machine_code, c.name AS customer_name,
+                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS total_revenue
+             FROM revenue r
+             JOIN machines m ON r.machine_id = m.id
+             LEFT JOIN customers c ON m.customer_id = c.id
+             WHERE r.collection_date >= ?
+             GROUP BY m.id, m.name, m.machine_code, c.name
+             ORDER BY total_revenue DESC
+             LIMIT 5",
+            [$thirtyDaysAgo]
+        );
+
+        // Recent jobs
+        $recentJobs = $this->db->fetchAll(
+            "SELECT j.*, m.name AS machine_name, js.name AS status_name, js.color AS status_color
+             FROM maintenance_jobs j
+             LEFT JOIN machines m ON j.machine_id = m.id
+             LEFT JOIN job_statuses js ON j.status_id = js.id
+             ORDER BY j.created_at DESC
+             LIMIT 5"
+        );
+
+        // Revenue chart data - last 6 months grouped by month (cash vs card)
         $sixMonthsAgo = date('Y-m-01', strtotime('-5 months'));
-        $chartData = $this->db->fetchAll(
+        $chartRows = $this->db->fetchAll(
             "SELECT DATE_FORMAT(collection_date, '%Y-%m') AS month,
-                    COALESCE(SUM(cash_amount + card_amount), 0) AS total
+                    COALESCE(SUM(cash_amount), 0) AS cash,
+                    COALESCE(SUM(card_amount), 0) AS card
              FROM revenue
              WHERE collection_date >= ?
              GROUP BY DATE_FORMAT(collection_date, '%Y-%m')
@@ -90,19 +121,30 @@ class DashboardController
             [$sixMonthsAgo]
         );
 
+        $revenueChart = ['labels' => [], 'cash' => [], 'card' => []];
+        foreach ($chartRows as $row) {
+            $revenueChart['labels'][] = date('M Y', strtotime($row['month'] . '-01'));
+            $revenueChart['cash'][] = (float) $row['cash'];
+            $revenueChart['card'][] = (float) $row['card'];
+        }
+
         return $this->twig->render($response, 'admin/dashboard/index.twig', [
             'active_page' => 'dashboard',
             'auth_user' => $this->auth->user(),
             'csrf_token' => $_SESSION['csrf_token'] ?? '',
             'flash_success' => $flashSuccess,
             'flash_error' => $flashError,
-            'total_machines' => $totalMachines,
-            'total_customers' => $totalCustomers,
-            'this_month_revenue' => $thisMonthRevenue,
-            'last_month_revenue' => $lastMonthRevenue,
-            'open_jobs' => $openJobs,
+            'stats' => [
+                'total_machines' => $totalMachines,
+                'total_customers' => $totalCustomers,
+                'month_revenue' => $thisMonthRevenue,
+                'revenue_change' => $revenueChange,
+                'open_jobs' => $openJobs,
+            ],
+            'top_machines' => $topMachines,
             'recent_revenue' => $recentRevenue,
-            'chart_data' => $chartData,
+            'recent_jobs' => $recentJobs,
+            'revenue_chart' => $revenueChart,
         ]);
     }
 }

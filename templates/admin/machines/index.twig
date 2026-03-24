@@ -3,7 +3,14 @@
 {% block page_title %}Machines{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div></div>
+    <div class="btn-group" role="group">
+        <a href="?view=list{{ filters.status ? '&status=' ~ filters.status }}{{ filters.customer_id ? '&customer_id=' ~ filters.customer_id }}{{ filters.machine_type_id ? '&machine_type_id=' ~ filters.machine_type_id }}{{ filters.search ? '&search=' ~ filters.search }}" class="btn btn-outline-secondary {{ view != 'grid' ? 'active' }}" title="List View">
+            <i class="bi bi-list"></i>
+        </a>
+        <a href="?view=grid{{ filters.status ? '&status=' ~ filters.status }}{{ filters.customer_id ? '&customer_id=' ~ filters.customer_id }}{{ filters.machine_type_id ? '&machine_type_id=' ~ filters.machine_type_id }}{{ filters.search ? '&search=' ~ filters.search }}" class="btn btn-outline-secondary {{ view == 'grid' ? 'active' }}" title="Grid View">
+            <i class="bi bi-grid"></i>
+        </a>
+    </div>
     <a href="/machines/create" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i> Add Machine
     </a>
@@ -54,7 +61,63 @@
     </div>
 </div>
 
-<!-- Machines Table -->
+{% if view == 'grid' %}
+<!-- Grid View -->
+<div class="row g-3">
+    {% for machine in machines %}
+    <div class="col-sm-6 col-lg-4 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            {% if machine.photo_url %}
+                <img src="{{ machine.photo_url }}" class="card-img-top" alt="{{ machine.name }}" style="height: 180px; object-fit: cover;">
+            {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center text-muted" style="height: 180px;">
+                    <i class="bi bi-joystick" style="font-size: 3rem;"></i>
+                </div>
+            {% endif %}
+            <div class="card-body">
+                <h6 class="card-title mb-1">
+                    <a href="/machines/{{ machine.id }}" class="text-decoration-none">{{ machine.name }}</a>
+                </h6>
+                <small class="text-muted">{{ machine.machine_code }}</small>
+                <div class="mt-2">
+                    {% if machine.status == 'active' %}
+                        <span class="badge bg-success">Active</span>
+                    {% elseif machine.status == 'maintenance' %}
+                        <span class="badge bg-warning text-dark">Maintenance</span>
+                    {% elseif machine.status == 'inactive' %}
+                        <span class="badge bg-secondary">Inactive</span>
+                    {% elseif machine.status == 'in_storage' %}
+                        <span class="badge bg-info">In Storage</span>
+                    {% endif %}
+                    {% if machine.type_name %}
+                        <span class="badge bg-light text-dark">{{ machine.type_name }}</span>
+                    {% endif %}
+                </div>
+                <div class="mt-2 small text-muted">
+                    {% if machine.customer_id %}
+                        <i class="bi bi-building me-1"></i><a href="/customers/{{ machine.customer_id }}">{{ machine.customer_name }}</a>
+                    {% else %}
+                        <i class="bi bi-building me-1"></i>Unassigned
+                    {% endif %}
+                </div>
+                {% if machine.location_details %}
+                    <div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ machine.location_details }}</div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent border-top-0 text-end">
+                <a href="/machines/{{ machine.id }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
+                <a href="/machines/{{ machine.id }}/edit" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="text-center text-muted py-4">No machines found.</div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- List View -->
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -76,13 +139,13 @@
                         <td><strong>{{ machine.machine_code }}</strong></td>
                         <td>{{ machine.name }}</td>
                         <td>
-                            {% if machine.customer %}
-                                <a href="/customers/{{ machine.customer.id }}">{{ machine.customer.name }}</a>
+                            {% if machine.customer_id %}
+                                <a href="/customers/{{ machine.customer_id }}">{{ machine.customer_name }}</a>
                             {% else %}
                                 <span class="text-muted">Unassigned</span>
                             {% endif %}
                         </td>
-                        <td>{{ machine.machine_type.name|default('--') }}</td>
+                        <td>{{ machine.type_name|default('--') }}</td>
                         <td>
                             {% if machine.status == 'active' %}
                                 <span class="badge bg-success">Active</span>
@@ -120,6 +183,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- Pagination -->
 {% if pagination and pagination.total_pages > 1 %}
