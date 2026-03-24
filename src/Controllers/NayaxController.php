@@ -358,10 +358,7 @@ class NayaxController
                     'amount' => $txn['amount'],
                     'payment_type' => $txn['payment_type'],
                     'status' => $txn['status'],
-                    'card_type' => $txn['card_type'],
-                    'product_name' => $txn['product_name'],
                     'raw_data' => json_encode($txn['raw']),
-                    'created_at' => date('Y-m-d H:i:s'),
                 ]);
                 $imported++;
             }
@@ -373,7 +370,6 @@ class NayaxController
                 'transactions_imported' => $imported,
                 'transactions_skipped' => $skipped,
                 'imported_by' => $this->auth->user()['id'] ?? null,
-                'created_at' => date('Y-m-d H:i:s'),
             ]);
 
             $_SESSION['flash_success'] = "Import complete. {$imported} transactions imported, {$skipped} skipped (duplicates).";
