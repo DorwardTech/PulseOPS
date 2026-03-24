@@ -228,19 +228,24 @@ class MachinesController
         unset($log);
 
         // Nayax device linked to this machine
-        $nayaxDevice = $this->db->fetch(
-            "SELECT * FROM nayax_devices WHERE machine_id = ? LIMIT 1",
-            [$id]
-        );
-
+        $nayaxDevice = null;
         $nayaxTransactions = [];
-        if ($nayaxDevice) {
-            $nayaxTransactions = $this->db->fetchAll(
-                "SELECT * FROM nayax_transactions
-                 WHERE device_id = ?
-                 ORDER BY transaction_date DESC LIMIT 25",
-                [$nayaxDevice['device_id']]
+        try {
+            $nayaxDevice = $this->db->fetch(
+                "SELECT * FROM nayax_devices WHERE machine_id = ? LIMIT 1",
+                [$id]
             );
+
+            if ($nayaxDevice) {
+                $nayaxTransactions = $this->db->fetchAll(
+                    "SELECT * FROM nayax_transactions
+                     WHERE device_id = ?
+                     ORDER BY transaction_date DESC LIMIT 25",
+                    [$nayaxDevice['device_id']]
+                );
+            }
+        } catch (\Exception $e) {
+            // Nayax tables may not exist yet
         }
 
         return $this->twig->render($response, 'admin/machines/show.twig', $this->viewData([

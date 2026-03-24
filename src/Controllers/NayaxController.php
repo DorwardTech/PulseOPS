@@ -173,7 +173,7 @@ class NayaxController
         // Log on the machine so it shows in machine history
         $this->audit->log('nayax_device_linked', 'machine', $machineId, [
             'nayax_device_id' => ['from' => null, 'to' => $device['device_id'] ?? $deviceId],
-            'nayax_device_name' => ['from' => null, 'to' => $device['actor_name'] ?? $device['device_id'] ?? ''],
+            'nayax_device_name' => ['from' => null, 'to' => $device['device_name'] ?? $device['device_id'] ?? ''],
         ]);
 
         $_SESSION['flash_success'] = 'Device linked to machine successfully.';
@@ -201,7 +201,7 @@ class NayaxController
 
             $this->audit->log('nayax_device_unlinked', 'machine', (int) $oldMachineId, [
                 'nayax_device_id' => ['from' => $device['device_id'] ?? $deviceId, 'to' => null],
-                'nayax_device_name' => ['from' => $device['actor_name'] ?? '', 'to' => null],
+                'nayax_device_name' => ['from' => $device['device_name'] ?? '', 'to' => null],
             ]);
         }
 
