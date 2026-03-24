@@ -273,8 +273,12 @@
                                         <span class="badge bg-primary">Updated</span>
                                     {% elseif log.action == 'deleted' %}
                                         <span class="badge bg-danger">Deleted</span>
+                                    {% elseif log.action == 'nayax_device_linked' %}
+                                        <span class="badge bg-info">Nayax Linked</span>
+                                    {% elseif log.action == 'nayax_device_unlinked' %}
+                                        <span class="badge bg-warning text-dark">Nayax Unlinked</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">{{ log.action }}</span>
+                                        <span class="badge bg-secondary">{{ log.action|replace({'_': ' '})|title }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
