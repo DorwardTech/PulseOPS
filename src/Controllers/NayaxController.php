@@ -84,7 +84,9 @@ class NayaxController
         );
 
         $machines = $this->db->fetchAll(
-            "SELECT id, name, machine_code FROM machines ORDER BY name ASC"
+            "SELECT id, name, machine_code FROM machines
+             WHERE id NOT IN (SELECT machine_id FROM nayax_devices WHERE machine_id IS NOT NULL)
+             ORDER BY name ASC"
         );
 
         return $this->twig->render($response, 'admin/nayax/devices.twig', [

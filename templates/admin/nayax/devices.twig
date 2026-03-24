@@ -102,10 +102,36 @@
         return count;
     }
 
+    function getSelectedValues() {
+        var vals = {};
+        selects.forEach(function(s) {
+            if (s.value) vals[s.dataset.deviceId] = s.value;
+        });
+        return vals;
+    }
+
+    function updateDropdowns() {
+        var selected = getSelectedValues();
+        var takenValues = Object.values(selected);
+
+        selects.forEach(function(s) {
+            var currentVal = s.value;
+            var options = s.querySelectorAll('option');
+            options.forEach(function(opt) {
+                if (!opt.value) return; // skip placeholder
+                // Hide if taken by another dropdown, show if it's this one's selection or not taken
+                var takenByOther = takenValues.indexOf(opt.value) !== -1 && opt.value !== currentVal;
+                opt.disabled = takenByOther;
+                opt.style.display = takenByOther ? 'none' : '';
+            });
+        });
+    }
+
     function updateBulkButton() {
         var count = getSelectedCount();
         bulkCount.textContent = count;
         bulkBtn.style.display = count > 0 ? 'inline-block' : 'none';
+        updateDropdowns();
     }
 
     selects.forEach(function(s) {
