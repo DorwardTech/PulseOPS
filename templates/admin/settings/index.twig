@@ -53,11 +53,13 @@
                         <div class="col-md-6">
                             <label for="timezone" class="form-label">Timezone</label>
                             <select class="form-select" id="timezone" name="timezone">
+                                <option value="Australia/Darwin" {{ settings.timezone == 'Australia/Darwin' ? 'selected' }}>Australia/Darwin</option>
                                 <option value="Australia/Sydney" {{ settings.timezone == 'Australia/Sydney' ? 'selected' }}>Australia/Sydney</option>
                                 <option value="Australia/Melbourne" {{ settings.timezone == 'Australia/Melbourne' ? 'selected' }}>Australia/Melbourne</option>
                                 <option value="Australia/Brisbane" {{ settings.timezone == 'Australia/Brisbane' ? 'selected' }}>Australia/Brisbane</option>
                                 <option value="Australia/Perth" {{ settings.timezone == 'Australia/Perth' ? 'selected' }}>Australia/Perth</option>
                                 <option value="Australia/Adelaide" {{ settings.timezone == 'Australia/Adelaide' ? 'selected' }}>Australia/Adelaide</option>
+                                <option value="Australia/Hobart" {{ settings.timezone == 'Australia/Hobart' ? 'selected' }}>Australia/Hobart</option>
                             </select>
                         </div>
                         <div class="col-12">
@@ -67,9 +69,9 @@
                         <div class="col-md-6">
                             <label for="currency" class="form-label">Currency</label>
                             <select class="form-select" id="currency" name="currency">
-                                <option value="AUD" {{ settings.currency == 'AUD' ? 'selected' }}>AUD - Australian Dollar</option>
-                                <option value="USD" {{ settings.currency == 'USD' ? 'selected' }}>USD - US Dollar</option>
-                                <option value="NZD" {{ settings.currency == 'NZD' ? 'selected' }}>NZD - New Zealand Dollar</option>
+                                <option value="AUD" {{ settings.currency_code == 'AUD' ? 'selected' }}>AUD - Australian Dollar</option>
+                                <option value="USD" {{ settings.currency_code == 'USD' ? 'selected' }}>USD - US Dollar</option>
+                                <option value="NZD" {{ settings.currency_code == 'NZD' ? 'selected' }}>NZD - New Zealand Dollar</option>
                             </select>
                         </div>
                     </div>
@@ -204,7 +206,7 @@
                         </div>
                         <div class="col-md-6">
                             <label for="smtp_from_address" class="form-label">From Address</label>
-                            <input type="email" class="form-control" id="smtp_from_address" name="smtp_from_address" value="{{ settings.smtp_from_address }}">
+                            <input type="email" class="form-control" id="smtp_from_address" name="smtp_from_address" value="{{ settings.smtp_from_email }}">
                         </div>
                         <div class="col-md-6">
                             <label for="smtp_from_name" class="form-label">From Name</label>

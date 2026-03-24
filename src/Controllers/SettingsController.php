@@ -31,10 +31,13 @@ class SettingsController
         $params = $request->getQueryParams();
         $activeTab = $params['tab'] ?? 'general';
 
-        $generalSettings = $this->settings->getByCategory('general');
-        $commissionSettings = $this->settings->getByCategory('commission');
-        $nayaxSettings = $this->settings->getByCategory('nayax');
-        $emailSettings = $this->settings->getByCategory('email');
+        $settings = array_merge(
+            $this->settings->getByCategory('general'),
+            $this->settings->getByCategory('commission'),
+            $this->settings->getByCategory('nayax'),
+            $this->settings->getByCategory('email'),
+            $this->settings->getByCategory('revenue')
+        );
 
         return $this->twig->render($response, 'admin/settings/index.twig', [
             'active_page' => 'settings',
@@ -43,10 +46,7 @@ class SettingsController
             'flash_success' => $flashSuccess,
             'flash_error' => $flashError,
             'active_tab' => $activeTab,
-            'general' => $generalSettings,
-            'commission' => $commissionSettings,
-            'nayax' => $nayaxSettings,
-            'email' => $emailSettings,
+            'settings' => $settings,
         ]);
     }
 
@@ -57,11 +57,16 @@ class SettingsController
     {
         $data = $request->getParsedBody();
 
-        $fields = ['company_name', 'email', 'phone', 'address', 'timezone', 'currency'];
+        $fields = ['company_name', 'company_email', 'company_phone', 'company_address', 'timezone'];
         foreach ($fields as $field) {
             if (isset($data[$field])) {
                 $this->settings->set($field, trim($data[$field]));
             }
+        }
+
+        // Map currency form field to currency_code DB key
+        if (isset($data['currency'])) {
+            $this->settings->set('currency_code', trim($data['currency']));
         }
 
         $_SESSION['flash_success'] = 'General settings updated successfully.';
@@ -108,7 +113,7 @@ class SettingsController
             }
         }
 
-        $this->settings->set('nayax_cash_counting', !empty($data['nayax_cash_counting']) ? '1' : '0', 'boolean');
+        $this->settings->set('nayax_cash_counting_enabled', !empty($data['nayax_cash_counting_enabled']) ? '1' : '0', 'boolean');
 
         $this->settings->clearCache();
 
@@ -123,15 +128,16 @@ class SettingsController
     {
         $data = $request->getParsedBody();
 
-        $fields = [
-            'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password',
-            'smtp_encryption', 'mail_from_address', 'mail_from_name',
-        ];
-
+        $fields = ['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_encryption', 'smtp_from_name'];
         foreach ($fields as $field) {
             if (isset($data[$field])) {
                 $this->settings->set($field, trim($data[$field]));
             }
+        }
+
+        // Map form field name to DB key
+        if (isset($data['smtp_from_address'])) {
+            $this->settings->set('smtp_from_email', trim($data['smtp_from_address']));
         }
 
         $_SESSION['flash_success'] = 'Email settings updated successfully.';
