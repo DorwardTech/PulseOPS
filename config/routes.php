@@ -165,6 +165,10 @@ return function (App $app) {
         $group->post('/settings/profile', [SettingsController::class, 'updateProfile']);
         $group->post('/settings/profile/password', [SettingsController::class, 'updatePassword']);
 
+        // Purge Data (admin only — permission checked in controller)
+        $group->get('/settings/purge-data', [SettingsController::class, 'purgeData']);
+        $group->post('/settings/purge-data', [SettingsController::class, 'executePurge']);
+
         // Logs (admin only — permission checked in controller)
         $group->get('/logs', [LogViewerController::class, 'index']);
         $group->post('/logs/php/clear', [LogViewerController::class, 'clearPhpLog']);
