@@ -486,9 +486,9 @@ class NayaxController
                 DATE(nt.transaction_date) as txn_date,
                 SUM(CASE WHEN nt.payment_type IN ('cash', 'coin') THEN nt.amount ELSE 0 END) as cash_total,
                 SUM(CASE WHEN nt.payment_type IN ('card') THEN nt.amount ELSE 0 END) as card_total,
-                SUM(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'qr', 'app') THEN nt.amount ELSE 0 END) as prepaid_total,
+                SUM(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'qr', 'app') OR nt.payment_type LIKE '%prepaid%' OR nt.payment_type LIKE '%monyx%' THEN nt.amount ELSE 0 END) as prepaid_total,
                 COUNT(CASE WHEN nt.payment_type IN ('card') THEN 1 END) as card_txn_count,
-                COUNT(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'qr', 'app') THEN 1 END) as prepaid_txn_count,
+                COUNT(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'qr', 'app') OR nt.payment_type LIKE '%prepaid%' OR nt.payment_type LIKE '%monyx%' THEN 1 END) as prepaid_txn_count,
                 GROUP_CONCAT(nt.id) as transaction_ids
              FROM nayax_transactions nt
              JOIN nayax_devices nd ON nd.device_id = nt.device_id
