@@ -1,25 +1,79 @@
 {% extends "layouts/admin.twig" %}
 {% block title %}Nayax Import{% endblock %}
-{% block page_title %}Import Nayax Transactions{% endblock %}
+{% block page_title %}Nayax Import{% endblock %}
 {% block content %}
-<div class="card">
-    <div class="card-body">
-        <form method="POST" action="/nayax/import">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label for="date_from" class="form-label">Date From</label>
-                    <input type="date" class="form-control" id="date_from" name="date_from" required>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-download me-2"></i>Import Nayax Transactions</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-info d-flex align-items-start mb-4">
+                    <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+                    <div>
+                        Select a date range to import transactions from the Nayax API. Duplicate transactions will be skipped automatically.
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label for="date_to" class="form-label">Date To</label>
-                    <input type="date" class="form-control" id="date_to" name="date_to" required>
-                </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-download me-1"></i> Import</button>
+
+                <form method="POST" action="/nayax/import">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="date_from" class="form-label">From Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="date_from" name="date_from" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="date_to" class="form-label">To Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="date_to" name="date_to" required>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="/nayax" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Back to Nayax
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-download me-1"></i> Import Transactions
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Imports -->
+        {% if recent_imports is defined and recent_imports|length > 0 %}
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Imports</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date Range</th>
+                                <th class="text-center">Imported</th>
+                                <th class="text-center">Skipped</th>
+                                <th>Imported At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for imp in recent_imports %}
+                            <tr>
+                                <td>{{ imp.date_from }} to {{ imp.date_to }}</td>
+                                <td class="text-center"><span class="badge bg-success">{{ imp.transactions_imported }}</span></td>
+                                <td class="text-center"><span class="badge bg-secondary">{{ imp.transactions_skipped }}</span></td>
+                                <td>{{ imp.created_at }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </form>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

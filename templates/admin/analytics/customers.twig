@@ -2,31 +2,138 @@
 {% block title %}Customer Analytics{% endblock %}
 {% block page_title %}Customer Analytics{% endblock %}
 {% block content %}
-<div class="row g-4">
-    {% if customers is defined and customers %}
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header"><h5 class="mb-0">Customer Performance</h5></div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead><tr><th>Customer</th><th>Business</th><th class="text-end">Revenue</th><th class="text-end">Commission Rate</th><th class="text-end">Machines</th></tr></thead>
-                        <tbody>
-                        {% for c in customers %}
-                        <tr>
-                            <td>{{ c.name }}</td>
-                            <td>{{ c.business_name ?? '-' }}</td>
-                            <td class="text-end">${{ c.total_revenue|number_format(2) }}</td>
-                            <td class="text-end">{{ c.commission_rate }}%</td>
-                            <td class="text-end">{{ c.machine_count }}</td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+<!-- Date Filter -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="/analytics/customers" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
             </div>
+            <div class="col-md-3">
+                <label class="form-label">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+            <div class="col-md-3">
+                <a href="/analytics/export?type=customers&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}" class="btn btn-outline-success w-100">
+                    <i class="bi bi-download me-1"></i> Export CSV
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Customer Revenue Table -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent">
+        <h6 class="mb-0">Revenue by Customer</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Customer</th>
+                        <th class="text-center">Machines</th>
+                        <th class="text-center">Collections</th>
+                        <th class="text-end">Cash</th>
+                        <th class="text-end">Card</th>
+                        <th class="text-end">Total Revenue</th>
+                        <th class="text-end">Commission Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in customer_revenue %}
+                    <tr>
+                        <td><a href="/customers/{{ row.id }}">{{ row.name }}</a></td>
+                        <td class="text-center">{{ row.machine_count }}</td>
+                        <td class="text-center">{{ row.collection_count }}</td>
+                        <td class="text-end">${{ row.cash_total|number_format(2) }}</td>
+                        <td class="text-end">${{ row.card_total|number_format(2) }}</td>
+                        <td class="text-end fw-bold">${{ row.total_revenue|number_format(2) }}</td>
+                        <td class="text-end">{{ row.commission_rate is not null ? row.commission_rate ~ '%' : 'Default' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No customer data available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
-    {% endif %}
+</div>
+
+<!-- Commission Totals -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent">
+        <h6 class="mb-0">Commission Totals</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Customer</th>
+                        <th class="text-center">Payments</th>
+                        <th class="text-end">Total Commission</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in commission_totals %}
+                    <tr>
+                        <td><a href="/customers/{{ row.id }}">{{ row.name }}</a></td>
+                        <td class="text-center">{{ row.payment_count }}</td>
+                        <td class="text-end fw-bold">${{ row.total_commission|number_format(2) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-4">No commission data available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Machine Counts per Customer -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent">
+        <h6 class="mb-0">Machine Distribution</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Customer</th>
+                        <th class="text-center">Active</th>
+                        <th class="text-center">Inactive</th>
+                        <th class="text-center">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in machine_counts %}
+                    <tr>
+                        <td><a href="/customers/{{ row.id }}">{{ row.name }}</a></td>
+                        <td class="text-center"><span class="badge bg-success">{{ row.active_machines }}</span></td>
+                        <td class="text-center"><span class="badge bg-secondary">{{ row.inactive_machines }}</span></td>
+                        <td class="text-center fw-bold">{{ row.total_machines }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">No data available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock %}
