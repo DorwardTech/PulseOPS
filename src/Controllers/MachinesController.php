@@ -202,7 +202,10 @@ class MachinesController
         );
 
         $jobs = $this->db->fetchAll(
-            "SELECT * FROM jobs WHERE machine_id = ? ORDER BY created_at DESC LIMIT 20",
+            "SELECT j.*, js.name AS status_name, js.slug AS status_slug, js.color AS status_color
+             FROM maintenance_jobs j
+             LEFT JOIN job_statuses js ON j.status_id = js.id
+             WHERE j.machine_id = ? ORDER BY j.created_at DESC LIMIT 20",
             [$id]
         );
 

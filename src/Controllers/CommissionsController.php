@@ -174,10 +174,10 @@ class CommissionsController
             "SELECT j.id AS job_id,
                     COALESCE(j.parts_cost, 0) AS parts_cost,
                     COALESCE(j.labour_cost, 0) AS labour_cost
-             FROM jobs j
+             FROM maintenance_jobs j
              JOIN machines m ON j.machine_id = m.id
              WHERE m.customer_id = ?
-               AND j.completed_date BETWEEN ? AND ?",
+               AND j.completed_at BETWEEN ? AND ?",
             [$customerId, $periodStart, $periodEnd]
         );
 
@@ -492,10 +492,10 @@ class CommissionsController
             "SELECT j.id AS job_id,
                     COALESCE(j.parts_cost, 0) AS parts_cost,
                     COALESCE(j.labour_cost, 0) AS labour_cost
-             FROM jobs j
+             FROM maintenance_jobs j
              JOIN machines m ON j.machine_id = m.id
              WHERE m.customer_id = ?
-               AND j.completed_date BETWEEN ? AND ?",
+               AND j.completed_at BETWEEN ? AND ?",
             [$customerId, $periodStart, $periodEnd]
         );
 
