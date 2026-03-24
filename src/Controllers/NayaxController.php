@@ -551,4 +551,28 @@ class NayaxController
 
         return $count;
     }
+
+    /**
+     * Re-aggregate all nayax transactions into the revenue table.
+     * Deletes existing nayax revenue records and rebuilds from scratch.
+     */
+    public function reaggregate(Request $request, Response $response, array $args = []): Response
+    {
+        try {
+            // Delete all nayax-sourced revenue records
+            $this->db->execute("DELETE FROM revenue WHERE source = 'nayax'");
+
+            // Reset all nayax transactions to un-aggregated
+            $this->db->execute("UPDATE nayax_transactions SET is_aggregated = 0, aggregated_at = NULL");
+
+            // Re-run aggregation
+            $count = $this->aggregateToRevenue();
+
+            $_SESSION['flash_success'] = "Re-aggregation complete. {$count} revenue records rebuilt from nayax transactions.";
+        } catch (\Exception $e) {
+            $_SESSION['flash_error'] = 'Re-aggregation failed: ' . $e->getMessage();
+        }
+
+        return $response->withHeader('Location', '/nayax/import')->withStatus(302);
+    }
 }
