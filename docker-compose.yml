@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "80"
+      - "${APP_PORT:-3000}:80"
     volumes:
       - uploads:/var/www/html/public/uploads
     environment:
@@ -27,6 +27,8 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
+    networks:
+      - pulseops
 
   mariadb:
     image: mariadb:11
@@ -43,7 +45,13 @@ services:
       timeout: 5s
       retries: 12
       start_period: 60s
+    networks:
+      - pulseops
 
 volumes:
   mariadb_data:
   uploads:
+
+networks:
+  pulseops:
+    driver: bridge
