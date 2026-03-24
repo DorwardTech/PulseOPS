@@ -76,13 +76,13 @@
                         <td><strong>{{ machine.machine_code }}</strong></td>
                         <td>{{ machine.name }}</td>
                         <td>
-                            {% if machine.customer %}
-                                <a href="/customers/{{ machine.customer.id }}">{{ machine.customer.name }}</a>
+                            {% if machine.customer_id %}
+                                <a href="/customers/{{ machine.customer_id }}">{{ machine.customer_name }}</a>
                             {% else %}
                                 <span class="text-muted">Unassigned</span>
                             {% endif %}
                         </td>
-                        <td>{{ machine.machine_type.name|default('--') }}</td>
+                        <td>{{ machine.type_name|default('--') }}</td>
                         <td>
                             {% if machine.status == 'active' %}
                                 <span class="badge bg-success">Active</span>

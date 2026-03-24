@@ -50,13 +50,13 @@
                             <dt class="col-sm-5">Contact Name</dt>
                             <dd class="col-sm-7">{{ customer.contact_name|default('--') }}</dd>
                             <dt class="col-sm-5">Email</dt>
-                            <dd class="col-sm-7">{{ customer.email ? '<a href="mailto:' ~ customer.email ~ '">' ~ customer.email ~ '</a>' : '--' }}</dd>
+                            <dd class="col-sm-7">{% if customer.email %}<a href="mailto:{{ customer.email }}">{{ customer.email }}</a>{% else %}--{% endif %}</dd>
                             <dt class="col-sm-5">Phone</dt>
                             <dd class="col-sm-7">{{ customer.phone|default('--') }}</dd>
                             <dt class="col-sm-5">Address</dt>
                             <dd class="col-sm-7">
                                 {{ customer.address_line1|default('') }}<br>
-                                {{ customer.address_line2 ? customer.address_line2 ~ '<br>' : '' }}
+                                {% if customer.address_line2 %}{{ customer.address_line2 }}<br>{% endif %}
                                 {{ customer.city|default('') }} {{ customer.state|default('') }} {{ customer.postcode|default('') }}
                             </dd>
                         </dl>

@@ -178,7 +178,7 @@ class MachinesController
         $id = (int) $args['id'];
 
         $machine = $this->db->fetch(
-            "SELECT m.*, c.name AS customer_name, mt.name AS type_name
+            "SELECT m.*, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone, mt.name AS type_name
              FROM machines m
              LEFT JOIN customers c ON m.customer_id = c.id
              LEFT JOIN machine_types mt ON m.machine_type_id = mt.id

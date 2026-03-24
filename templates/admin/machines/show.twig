@@ -55,7 +55,7 @@
                             <dt class="col-sm-5">Name</dt>
                             <dd class="col-sm-7">{{ machine.name }}</dd>
                             <dt class="col-sm-5">Type</dt>
-                            <dd class="col-sm-7">{{ machine.machine_type.name|default('--') }}</dd>
+                            <dd class="col-sm-7">{{ machine.type_name|default('--') }}</dd>
                             <dt class="col-sm-5">Serial Number</dt>
                             <dd class="col-sm-7">{{ machine.serial_number|default('--') }}</dd>
                             <dt class="col-sm-5">Manufacturer</dt>
@@ -74,10 +74,10 @@
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-header bg-transparent"><h6 class="mb-0">Customer</h6></div>
                     <div class="card-body">
-                        {% if machine.customer %}
-                            <p class="mb-1"><strong><a href="/customers/{{ machine.customer.id }}">{{ machine.customer.name }}</a></strong></p>
-                            <p class="mb-1 text-muted">{{ machine.customer.email|default('') }}</p>
-                            <p class="mb-0 text-muted">{{ machine.customer.phone|default('') }}</p>
+                        {% if machine.customer_id %}
+                            <p class="mb-1"><strong><a href="/customers/{{ machine.customer_id }}">{{ machine.customer_name }}</a></strong></p>
+                            <p class="mb-1 text-muted">{{ machine.customer_email|default('') }}</p>
+                            <p class="mb-0 text-muted">{{ machine.customer_phone|default('') }}</p>
                         {% else %}
                             <p class="text-muted mb-0">No customer assigned.</p>
                         {% endif %}
