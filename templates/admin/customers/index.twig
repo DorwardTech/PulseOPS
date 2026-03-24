@@ -68,7 +68,7 @@
                         </td>
                         <td>{{ customer.phone|default('--') }}</td>
                         <td>{{ customer.commission_rate is not null ? customer.commission_rate ~ '%' : '--' }}</td>
-                        <td><span class="badge bg-primary rounded-pill">{{ customer.machines_count|default(0) }}</span></td>
+                        <td><span class="badge bg-primary rounded-pill">{{ customer.active_machines|default(0) }}</span></td>
                         <td>
                             {% if customer.is_active %}
                                 <span class="badge bg-success">Active</span>
