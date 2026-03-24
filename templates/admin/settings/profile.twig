@@ -15,15 +15,15 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ auth_user.full_name }}" required>
+                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ profile.full_name }}" required>
                         </div>
                         <div class="col-md-6">
                             <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
-                            <input type="email" class="form-control" id="email" name="email" value="{{ auth_user.email }}" required>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ profile.email }}" required>
                         </div>
                         <div class="col-md-6">
                             <label for="phone" class="form-label">Phone</label>
-                            <input type="text" class="form-control" id="phone" name="phone" value="{{ auth_user.phone }}">
+                            <input type="text" class="form-control" id="phone" name="phone" value="{{ profile.phone }}">
                         </div>
                     </div>
                     <div class="mt-4">

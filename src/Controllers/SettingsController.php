@@ -684,6 +684,7 @@ class SettingsController
         // Update session data
         $_SESSION['user']['full_name'] = trim($data['full_name'] ?? '');
         $_SESSION['user']['email'] = $email;
+        $_SESSION['user']['phone'] = trim($data['phone'] ?? '');
 
         $_SESSION['flash_success'] = 'Profile updated successfully.';
         return $response->withHeader('Location', '/settings/profile')->withStatus(302);
