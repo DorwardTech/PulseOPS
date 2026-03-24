@@ -563,26 +563,17 @@ class NayaxService
      */
     private static function resolvePaymentType(array $sale): string
     {
-        $recognition = strtolower(trim($sale['RecognitionMethod'] ?? ''));
         $payment = strtolower(trim($sale['PaymentMethod'] ?? ''));
+        $recognition = strtolower(trim($sale['RecognitionMethod'] ?? ''));
 
-        // RecognitionMethod-based prepaid detection (takes priority)
-        $prepaidRecognition = [
-            'mifare'      => 'mifh',
-            'mifh'        => 'mifh',
-            'qr'          => 'qr',
-            'qr code'     => 'qr',
-            'qrcode'      => 'qr',
-            'app'         => 'app',
-            'prepaid'     => 'prepaid',
-            'nfc'         => 'prepaid',
-        ];
-
-        if (isset($prepaidRecognition[$recognition])) {
-            return $prepaidRecognition[$recognition];
+        // Check both fields for prepaid keywords (substring match)
+        foreach ([$payment, $recognition] as $val) {
+            if (str_contains($val, 'prepaid') || str_contains($val, 'monyx')) {
+                return 'prepaid';
+            }
         }
 
-        // Fall back to PaymentMethod normalization
+        // Exact match map for PaymentMethod
         $paymentMap = [
             'creditcard'  => 'card',
             'credit card' => 'card',
@@ -596,7 +587,6 @@ class NayaxService
             'cash'        => 'cash',
             'coin'        => 'coin',
             'coins'       => 'coin',
-            'prepaid'     => 'prepaid',
             'qr'          => 'qr',
             'qrcode'      => 'qr',
             'qr code'     => 'qr',
@@ -607,6 +597,11 @@ class NayaxService
 
         if ($payment !== '' && isset($paymentMap[$payment])) {
             return $paymentMap[$payment];
+        }
+
+        // Check recognition for other known types
+        if (isset($paymentMap[$recognition])) {
+            return $paymentMap[$recognition];
         }
 
         // If PaymentMethod is set but unknown, preserve it

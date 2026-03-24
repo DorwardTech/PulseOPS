@@ -625,17 +625,20 @@ class NayaxController
     {
         // Use MySQL JSON_EXTRACT to reclassify in bulk
         // RecognitionMethod takes priority for prepaid detection
+        // Reclassify using PaymentMethod (RecognitionMethod mirrors it in this API)
         $sql = "UPDATE nayax_transactions SET payment_type = CASE
-            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) IN ('mifare', 'mifh') THEN 'mifh'
-            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) IN ('qr', 'qrcode', 'qr code') THEN 'qr'
-            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) = 'app' THEN 'app'
-            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) IN ('prepaid', 'nfc') THEN 'prepaid'
             WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('cash') THEN 'cash'
             WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('coin', 'coins') THEN 'coin'
-            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('prepaid') THEN 'prepaid'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) LIKE '%prepaid%' THEN 'prepaid'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) LIKE '%monyx%' THEN 'prepaid'
             WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('qr', 'qrcode', 'qr code') THEN 'qr'
             WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('mifare', 'mifh') THEN 'mifh'
             WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) = 'app' THEN 'app'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) LIKE '%prepaid%' THEN 'prepaid'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) LIKE '%monyx%' THEN 'prepaid'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) IN ('mifare', 'mifh') THEN 'mifh'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) IN ('qr', 'qrcode', 'qr code') THEN 'qr'
+            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) LIKE '%app%' THEN 'app'
             ELSE 'card'
         END
         WHERE raw_data IS NOT NULL";
