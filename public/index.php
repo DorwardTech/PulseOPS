@@ -45,18 +45,9 @@ try {
     // Build DI Container
     $containerBuilder = new ContainerBuilder();
 
-    if (($_ENV['APP_ENV'] ?? '') === 'production') {
-        $diCachePath = __DIR__ . '/../var/cache/di';
-        // Clear stale DI cache on deploy (keyed by config file modification time)
-        $cacheKey = $diCachePath . '/.cache_key';
-        $currentKey = md5_file(__DIR__ . '/../config/container.php') . md5_file(__DIR__ . '/../config/routes.php');
-        if (!file_exists($cacheKey) || file_get_contents($cacheKey) !== $currentKey) {
-            array_map('unlink', glob($diCachePath . '/*.php') ?: []);
-            @mkdir($diCachePath, 0755, true);
-            file_put_contents($cacheKey, $currentKey);
-        }
-        $containerBuilder->enableCompilation($diCachePath);
-    }
+    // DI compilation disabled — causes stale cache 504s on deploy
+    // when controller signatures change. The performance gain is
+    // negligible for this app size.
 
     (require __DIR__ . '/../config/container.php')($containerBuilder);
     $container = $containerBuilder->build();

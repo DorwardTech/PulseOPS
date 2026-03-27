@@ -488,7 +488,6 @@ class CommissionsController
 
         $this->db->insert('commission_line_items', [
             'commission_id' => $id,
-            'machine_id' => !empty($data['machine_id']) ? (int) $data['machine_id'] : null,
             'description' => $description,
             'amount' => $amount,
             'type' => $type,
