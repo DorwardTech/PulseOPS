@@ -76,7 +76,7 @@
                         <td class="text-end">{{ format_currency(commission.gross_revenue) }}</td>
                         <td class="text-end">{{ format_currency(commission.net_revenue) }}</td>
                         <td class="text-end"><strong>{{ format_currency(commission.commission_amount) }}</strong></td>
-                        <td class="text-end">{{ format_currency(commission.prepaid_amount) }}</td>
+                        <td class="text-end">{{ format_currency(commission.total_prepaid) }}</td>
                         <td>
                             {% if commission.status == 'draft' %}
                                 <span class="badge bg-secondary">Draft</span>

@@ -242,6 +242,32 @@
             }, 5000);
         });
     </script>
+    <script>
+    // Sortable tables: add class="sortable" to any <table>
+    document.querySelectorAll('table.sortable').forEach(table => {
+        const headers = table.querySelectorAll('thead th');
+        headers.forEach((th, idx) => {
+            th.style.cursor = 'pointer';
+            th.style.userSelect = 'none';
+            th.insertAdjacentHTML('beforeend', ' <i class="bi bi-arrow-down-up text-muted small"></i>');
+            let asc = true;
+            th.addEventListener('click', () => {
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                rows.sort((a, b) => {
+                    const aCell = a.cells[idx]?.textContent.trim() || '';
+                    const bCell = b.cells[idx]?.textContent.trim() || '';
+                    const aNum = parseFloat(aCell.replace(/[^0-9.\-]/g, ''));
+                    const bNum = parseFloat(bCell.replace(/[^0-9.\-]/g, ''));
+                    if (!isNaN(aNum) && !isNaN(bNum)) return asc ? aNum - bNum : bNum - aNum;
+                    return asc ? aCell.localeCompare(bCell) : bCell.localeCompare(aCell);
+                });
+                rows.forEach(r => tbody.appendChild(r));
+                asc = !asc;
+            });
+        });
+    });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

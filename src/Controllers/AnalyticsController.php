@@ -94,12 +94,57 @@ class AnalyticsController
             [date('Y-01-01')]
         );
 
+        $activeMachines = (int) $this->db->fetchColumn(
+            "SELECT COUNT(*) FROM machines WHERE status = 'active'"
+        );
+
+        $pendingCommissions = (float) $this->db->fetchColumn(
+            "SELECT COALESCE(SUM(commission_amount), 0) FROM commission_payments WHERE status = 'draft'"
+        );
+
+        $openJobs = (int) $this->db->fetchColumn(
+            "SELECT COUNT(*) FROM maintenance_jobs j
+             LEFT JOIN job_statuses js ON j.status_id = js.id
+             WHERE js.slug NOT IN ('completed', 'closed', 'cancelled') OR js.slug IS NULL"
+        );
+
+        // Build chart data arrays from revenue_trends
+        $chartLabels = array_column($revenueTrends, 'month');
+        $chartCash = array_map(fn($r) => (float) $r['cash_total'], $revenueTrends);
+        $chartCard = array_map(fn($r) => (float) $r['card_total'], $revenueTrends);
+
+        // Get prepaid data for chart
+        $prepaidTrends = $this->db->fetchAll(
+            "SELECT DATE_FORMAT(collection_date, '%Y-%m') AS month,
+                    COALESCE(SUM(prepaid_amount), 0) AS prepaid_total
+             FROM revenue
+             WHERE collection_date >= ?
+             GROUP BY DATE_FORMAT(collection_date, '%Y-%m')
+             ORDER BY month ASC",
+            [$twelveMonthsAgo]
+        );
+        $prepaidByMonth = [];
+        foreach ($prepaidTrends as $p) {
+            $prepaidByMonth[$p['month']] = (float) $p['prepaid_total'];
+        }
+        $chartPrepaid = array_map(fn($m) => $prepaidByMonth[$m] ?? 0, $chartLabels);
+
         return $this->twig->render($response, 'admin/analytics/index.twig', [
             'active_page' => 'analytics',
             'auth_user' => $this->auth->user(),
             'csrf_token' => $_SESSION['csrf_token'] ?? '',
             'flash_success' => $flashSuccess,
             'flash_error' => $flashError,
+            'stats' => [
+                'mtd_revenue' => $thisMonthRevenue,
+                'active_machines' => $activeMachines,
+                'pending_commissions' => $pendingCommissions,
+                'open_jobs' => $openJobs,
+            ],
+            'chart_labels' => $chartLabels,
+            'chart_cash' => $chartCash,
+            'chart_card' => $chartCard,
+            'chart_prepaid' => $chartPrepaid,
             'revenue_trends' => $revenueTrends,
             'top_machines' => $topMachines,
             'top_customers' => $topCustomers,
