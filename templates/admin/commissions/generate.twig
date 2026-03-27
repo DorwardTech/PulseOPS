@@ -32,7 +32,7 @@
                         <select class="form-select" id="customer_id" name="customer_id" required>
                             <option value="">-- Select Customer --</option>
                             {% for customer in customers %}
-                                <option value="{{ customer.id }}">{{ customer.name }} ({{ customer.commission_rate }}%)</option>
+                                <option value="{{ customer.id }}">{{ customer.name }}</option>
                             {% endfor %}
                         </select>
                     </div>

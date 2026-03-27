@@ -71,12 +71,12 @@
                             <input type="text" class="form-control" id="model" name="model" value="{{ machine.model|default(old.model) }}">
                         </div>
                         <div class="col-md-4">
-                            <label for="commission_rate" class="form-label">Commission Rate Override</label>
+                            <label for="commission_rate" class="form-label">Commission Rate</label>
                             <div class="input-group">
-                                <input type="number" class="form-control" id="commission_rate" name="commission_rate" step="0.01" min="0" max="100" value="{{ machine.commission_rate|default(old.commission_rate) }}" placeholder="Use customer default">
+                                <input type="number" class="form-control" id="commission_rate" name="commission_rate" step="0.01" min="0" max="100" value="{{ machine.commission_rate }}" placeholder="Auto-set from customer">
                                 <span class="input-group-text">%</span>
                             </div>
-                            <div class="form-text">Leave blank to use customer's default rate.</div>
+                            <div class="form-text">Auto-populated from customer when assigned. Override per machine as needed.</div>
                         </div>
                         <div class="col-md-4">
                             <label for="installation_date" class="form-label">Installation Date</label>
