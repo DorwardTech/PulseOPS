@@ -447,14 +447,14 @@ class CustomersController
 
         if ($name === '' || $email === '' || $password === '') {
             $_SESSION['flash_error'] = 'Name, email, and password are required.';
-            return $response->withHeader('Location', "/customers/{$customerId}/portal-users")->withStatus(302);
+            return $response->withHeader('Location', "/customers/{$customerId}/portal")->withStatus(302);
         }
 
         // Check for duplicate email
         $exists = $this->db->exists('customer_portal_users', 'email = ?', [$email]);
         if ($exists) {
             $_SESSION['flash_error'] = 'A portal user with this email already exists.';
-            return $response->withHeader('Location', "/customers/{$customerId}/portal-users")->withStatus(302);
+            return $response->withHeader('Location', "/customers/{$customerId}/portal")->withStatus(302);
         }
 
         $this->db->insert('customer_portal_users', [
@@ -468,7 +468,7 @@ class CustomersController
         ]);
 
         $_SESSION['flash_success'] = 'Portal user created successfully.';
-        return $response->withHeader('Location', "/customers/{$customerId}/portal-users")->withStatus(302);
+        return $response->withHeader('Location', "/customers/{$customerId}/portal")->withStatus(302);
     }
 
     /**
@@ -486,7 +486,7 @@ class CustomersController
 
         if (!$portalUser) {
             $_SESSION['flash_error'] = 'Portal user not found.';
-            return $response->withHeader('Location', "/customers/{$customerId}/portal-users")->withStatus(302);
+            return $response->withHeader('Location', "/customers/{$customerId}/portal")->withStatus(302);
         }
 
         $newStatus = $portalUser['is_active'] ? 0 : 1;
@@ -497,6 +497,6 @@ class CustomersController
 
         $statusLabel = $newStatus ? 'enabled' : 'disabled';
         $_SESSION['flash_success'] = "Portal user {$statusLabel} successfully.";
-        return $response->withHeader('Location', "/customers/{$customerId}/portal-users")->withStatus(302);
+        return $response->withHeader('Location', "/customers/{$customerId}/portal")->withStatus(302);
     }
 }
