@@ -184,29 +184,32 @@ class CommissionsController
         // 3. Get carry_forward from customer
         $carryForward = (float) ($customer['carry_forward'] ?? 0);
 
-        // 4. Calculate using CommissionCalculator
-        $commissionRate = $customer['commission_rate']
-            ?? (float) $this->settings->get('default_commission_rate', 0);
+        // 4. Calculate using machine-level commission rates
+        // Each machine has its own commission_rate. Customer rate is only a default.
+        $defaultRate = (float) ($customer['commission_rate']
+            ?? $this->settings->get('default_commission_rate', 0));
         $processingFee = $customer['processing_fee']
             ?? (float) $this->settings->get('default_processing_fee', 0);
 
-        // Get machine-level overrides (keyed by machine id)
-        $machineOverrides = [];
-        $overrideRows = $this->db->fetchAll(
-            "SELECT id, commission_rate FROM machines
-             WHERE customer_id = ? AND commission_rate IS NOT NULL",
+        // Get commission rate for each machine (keyed by machine id)
+        $machineRates = [];
+        $machineRows = $this->db->fetchAll(
+            "SELECT id, commission_rate FROM machines WHERE customer_id = ?",
             [$customerId]
         );
-        foreach ($overrideRows as $row) {
-            $machineOverrides[(int) $row['id']] = (float) $row['commission_rate'];
+        foreach ($machineRows as $row) {
+            // Use machine rate if set, otherwise fall back to customer/system default
+            $machineRates[(int) $row['id']] = $row['commission_rate'] !== null
+                ? (float) $row['commission_rate']
+                : $defaultRate;
         }
 
-        // Aggregate revenue entries, applying machine-level commission rates
+        // Aggregate revenue entries using per-machine commission rates
         $totalCash = 0;
         $totalCard = 0;
         $totalPrepaid = 0;
         $totalCardTransactions = 0;
-        $weightedCommissionNumerator = 0; // sum of (machine_gross * machine_rate)
+        $weightedCommissionNumerator = 0;
         $totalGrossForWeighting = 0;
         foreach ($revenueEntries as $entry) {
             $cash = (float) ($entry['cash_amount'] ?? 0);
@@ -216,18 +219,17 @@ class CommissionsController
             $totalPrepaid += (float) ($entry['prepaid_amount'] ?? 0);
             $totalCardTransactions += (int) ($entry['card_transactions'] ?? 0);
 
-            // Use machine override rate if available, else customer rate
             $machineId = (int) ($entry['machine_id'] ?? 0);
-            $entryRate = $machineOverrides[$machineId] ?? $commissionRate;
+            $entryRate = $machineRates[$machineId] ?? $defaultRate;
             $entryGross = $cash + $card;
             $weightedCommissionNumerator += $entryGross * $entryRate;
             $totalGrossForWeighting += $entryGross;
         }
 
-        // Effective blended commission rate across all machines
+        // Effective blended rate (weighted average across machines)
         $effectiveRate = $totalGrossForWeighting > 0
             ? $weightedCommissionNumerator / $totalGrossForWeighting
-            : $commissionRate;
+            : $defaultRate;
 
         // Aggregate job costs
         $totalPartsCost = 0;

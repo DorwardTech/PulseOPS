@@ -173,6 +173,17 @@ class MachinesController
             return $response->withHeader('Location', '/machines/create')->withStatus(302);
         }
 
+        // Auto-populate commission_rate from customer default if not explicitly set
+        if ($machineData['commission_rate'] === null && $machineData['customer_id'] !== null) {
+            $custRate = $this->db->fetchColumn(
+                "SELECT commission_rate FROM customers WHERE id = ?",
+                [$machineData['customer_id']]
+            );
+            if ($custRate !== null && $custRate !== false) {
+                $machineData['commission_rate'] = (float) $custRate;
+            }
+        }
+
         $id = $this->db->insert('machines', $machineData);
 
         $this->audit->log('created', 'machine', (int) $id, null, $machineData);
@@ -317,6 +328,19 @@ class MachinesController
         if ($machineData['machine_code'] === '' || $machineData['name'] === '') {
             $_SESSION['flash_error'] = 'Machine code and name are required.';
             return $response->withHeader('Location', "/machines/{$id}/edit")->withStatus(302);
+        }
+
+        // Auto-populate commission_rate from customer default if not explicitly set
+        // and customer has changed
+        $customerChanged = $oldMachine && (int) ($oldMachine['customer_id'] ?? 0) !== ($machineData['customer_id'] ?? 0);
+        if ($machineData['commission_rate'] === null && $machineData['customer_id'] !== null && $customerChanged) {
+            $custRate = $this->db->fetchColumn(
+                "SELECT commission_rate FROM customers WHERE id = ?",
+                [$machineData['customer_id']]
+            );
+            if ($custRate !== null && $custRate !== false) {
+                $machineData['commission_rate'] = (float) $custRate;
+            }
         }
 
         $this->db->update('machines', $machineData, 'id = ?', [$id]);
