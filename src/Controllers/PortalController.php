@@ -133,18 +133,61 @@ class PortalController
             );
         }
 
+        // Latest commission
+        $latestCommission = (float) $this->db->fetchColumn(
+            "SELECT COALESCE(commission_amount, 0) FROM commission_payments
+             WHERE customer_id = ? ORDER BY period_end DESC LIMIT 1",
+            [$customerId]
+        );
+
+        // Open jobs for this customer's machines
+        $openJobs = 0;
+        $recentJobs = [];
+        if (!empty($machineIds)) {
+            $placeholders = implode(',', array_fill(0, count($machineIds), '?'));
+            $openJobs = (int) $this->db->fetchColumn(
+                "SELECT COUNT(*) FROM maintenance_jobs j
+                 LEFT JOIN job_statuses js ON j.status_id = js.id
+                 WHERE j.machine_id IN ({$placeholders})
+                   AND j.is_customer_visible = 1
+                   AND (js.slug NOT IN ('completed', 'closed', 'cancelled') OR js.slug IS NULL)",
+                $machineIds
+            );
+            $recentJobs = $this->db->fetchAll(
+                "SELECT j.*, m.name AS machine_name,
+                        js.name AS status_name, js.color AS status_color
+                 FROM maintenance_jobs j
+                 LEFT JOIN machines m ON j.machine_id = m.id
+                 LEFT JOIN job_statuses js ON j.status_id = js.id
+                 WHERE j.machine_id IN ({$placeholders})
+                   AND j.is_customer_visible = 1
+                 ORDER BY j.created_at DESC LIMIT 5",
+                $machineIds
+            );
+        }
+
+        // Customer info
+        $customer = $this->db->fetch(
+            "SELECT * FROM customers WHERE id = ?",
+            [$customerId]
+        );
+
         return $this->twig->render($response, 'portal/dashboard.twig', [
             'active_page' => 'dashboard',
             'portal_user' => $portalUser,
+            'customer' => $customer,
             'csrf_token' => $_SESSION['csrf_token'] ?? '',
             'flash_success' => $flashSuccess,
             'flash_error' => $flashError,
             'machines' => $machines,
             'recent_revenue' => $recentRevenue,
-            'total_commissions' => $totalCommissions,
-            'pending_commissions' => $pendingCommissions,
-            'this_month_revenue' => $thisMonthRevenue,
-            'machine_count' => count($machines),
+            'recent_jobs' => $recentJobs,
+            'stats' => [
+                'total_machines' => count($machines),
+                'month_revenue' => $thisMonthRevenue,
+                'latest_commission' => $latestCommission,
+                'open_jobs' => $openJobs,
+            ],
         ]);
     }
 
@@ -224,6 +267,37 @@ class PortalController
     }
 
     /**
+     * Show report issue form.
+     */
+    public function showReportIssue(Request $request, Response $response, array $args = []): Response
+    {
+        $portalUser = $this->auth->portalUser();
+        $customerId = $portalUser['customer_id'];
+        $machineId = (int) $args['id'];
+
+        $machine = $this->db->fetch(
+            "SELECT * FROM machines WHERE id = ? AND customer_id = ?",
+            [$machineId, $customerId]
+        );
+
+        if (!$machine) {
+            $_SESSION['flash_error'] = 'Machine not found.';
+            return $response->withHeader('Location', '/portal/machines')->withStatus(302);
+        }
+
+        $flashError = $_SESSION['flash_error'] ?? null;
+        unset($_SESSION['flash_error']);
+
+        return $this->twig->render($response, 'portal/machines/report-issue.twig', [
+            'active_page' => 'machines',
+            'portal_user' => $portalUser,
+            'csrf_token' => $_SESSION['csrf_token'] ?? '',
+            'flash_error' => $flashError,
+            'machine' => $machine,
+        ]);
+    }
+
+    /**
      * Create a maintenance job from the portal (report an issue).
      */
     public function reportIssue(Request $request, Response $response, array $args = []): Response
@@ -232,7 +306,7 @@ class PortalController
         $customerId = $portalUser['customer_id'];
         $data = $request->getParsedBody();
 
-        $machineId = (int) ($data['machine_id'] ?? 0);
+        $machineId = (int) ($args['id'] ?? $data['machine_id'] ?? 0);
 
         // Verify machine belongs to customer
         $machine = $this->db->fetch(

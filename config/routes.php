@@ -191,6 +191,7 @@ return function (App $app) {
         $group->get('/dashboard', [PortalController::class, 'dashboard']);
         $group->get('/machines', [PortalController::class, 'machines']);
         $group->get('/machines/{id:[0-9]+}', [PortalController::class, 'machineDetail']);
+        $group->get('/machines/{id:[0-9]+}/report-issue', [PortalController::class, 'showReportIssue']);
         $group->post('/machines/{id:[0-9]+}/report-issue', [PortalController::class, 'reportIssue']);
         $group->get('/revenue', [PortalController::class, 'revenue']);
         $group->get('/commissions', [PortalController::class, 'commissions']);

@@ -19,7 +19,7 @@
             </div>
             <div class="card-body">
                 <p class="text-muted mb-4">
-                    Report an issue with <strong>{{ machine.name }}</strong> ({{ machine.code }}). Our team will review and schedule maintenance as needed.
+                    Report an issue with <strong>{{ machine.name }}</strong> ({{ machine.machine_code }}). Our team will review and schedule maintenance as needed.
                 </p>
 
                 <form method="POST" action="/portal/machines/{{ machine.id }}/report-issue">
