@@ -387,6 +387,11 @@ class NayaxController
             'flash_success' => $flashSuccess,
             'flash_error' => $flashError,
             'recent_imports' => $recentImports,
+            'settings' => [
+                'nayax_auto_import' => $this->settings->get('nayax_auto_import'),
+                'nayax_import_interval' => $this->settings->get('nayax_import_interval', '60'),
+                'nayax_import_days' => $this->settings->get('nayax_import_days', '7'),
+            ],
         ]);
     }
 
@@ -644,5 +649,121 @@ class NayaxController
         WHERE raw_data IS NOT NULL";
 
         return $this->db->execute($sql);
+    }
+
+    /**
+     * Cron endpoint for automatic Nayax import.
+     * Called via: GET /api/nayax/cron?key=<cron_key>
+     */
+    public function cronImport(Request $request, Response $response, array $args = []): Response
+    {
+        $params = $request->getQueryParams();
+        $key = $params['key'] ?? '';
+
+        $cronKey = $this->settings->get('nayax_cron_key', '');
+        if ($cronKey === '' || !hash_equals($cronKey, $key)) {
+            $response->getBody()->write(json_encode(['error' => 'Unauthorized']));
+            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+        }
+
+        if (!$this->settings->get('nayax_auto_import')) {
+            $response->getBody()->write(json_encode(['status' => 'disabled', 'message' => 'Auto-import is disabled']));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
+        // Check interval - only run if enough time has passed since last cron import
+        $interval = (int) ($this->settings->get('nayax_import_interval') ?: 60);
+        $lastCron = $this->db->fetch(
+            "SELECT import_date FROM nayax_imports WHERE import_type = 'cron' ORDER BY id DESC LIMIT 1"
+        );
+        if ($lastCron) {
+            $lastTime = strtotime($lastCron['import_date']);
+            if ((time() - $lastTime) < ($interval * 60)) {
+                $response->getBody()->write(json_encode([
+                    'status' => 'skipped',
+                    'message' => 'Not yet due',
+                    'next_in' => ($interval * 60) - (time() - $lastTime) . 's',
+                ]));
+                return $response->withHeader('Content-Type', 'application/json');
+            }
+        }
+
+        $days = (int) ($this->settings->get('nayax_import_days') ?: 7);
+        $dateTo = date('Y-m-d');
+        $dateFrom = date('Y-m-d', strtotime("-{$days} days"));
+
+        try {
+            $transactions = $this->nayax->getTransactions($dateFrom, $dateTo);
+
+            $imported = 0;
+            $skipped = 0;
+
+            foreach ($transactions as $txn) {
+                $txnId = $txn['transaction_id'] ?? '';
+                if ($txnId === '') {
+                    continue;
+                }
+
+                $amount = (float) ($txn['amount'] ?? 0);
+                $status = $txn['status'] ?? 'completed';
+                if ($amount <= 0 || in_array($status, ['declined', 'failed', 'rejected', 'cancelled', 'error'])) {
+                    $skipped++;
+                    continue;
+                }
+
+                $exists = $this->db->exists('nayax_transactions', 'transaction_id = ?', [$txnId]);
+                if ($exists) {
+                    $skipped++;
+                    continue;
+                }
+
+                $this->db->insert('nayax_transactions', [
+                    'transaction_id'   => $txnId,
+                    'device_id'        => $txn['device_id'] ?? '',
+                    'transaction_date' => $txn['date'],
+                    'amount'           => $txn['amount'],
+                    'payment_type'     => $txn['payment_type'] ?? 'card',
+                    'status'           => $txn['status'] ?? 'completed',
+                    'raw_data'         => json_encode($txn['raw'] ?? []),
+                ]);
+                $imported++;
+            }
+
+            $this->db->insert('nayax_imports', [
+                'import_type'            => 'cron',
+                'date_from'              => $dateFrom,
+                'date_to'                => $dateTo,
+                'transactions_imported'  => $imported,
+                'transactions_skipped'   => $skipped,
+                'records_imported'       => $imported,
+                'records_skipped'        => $skipped,
+                'status'                 => 'success',
+                'imported_by'            => null,
+            ]);
+
+            $aggregated = $this->aggregateToRevenue();
+
+            $result = [
+                'status' => 'success',
+                'imported' => $imported,
+                'skipped' => $skipped,
+                'aggregated' => $aggregated,
+                'period' => "{$dateFrom} to {$dateTo}",
+            ];
+        } catch (\Exception $e) {
+            $this->db->insert('nayax_imports', [
+                'import_type'  => 'cron',
+                'date_from'    => $dateFrom,
+                'date_to'      => $dateTo,
+                'status'       => 'failed',
+                'error_message' => $e->getMessage(),
+                'imported_by'  => null,
+            ]);
+
+            $result = ['status' => 'error', 'message' => $e->getMessage()];
+        }
+
+        $response->getBody()->write(json_encode($result));
+        return $response->withHeader('Content-Type', 'application/json');
     }
 }

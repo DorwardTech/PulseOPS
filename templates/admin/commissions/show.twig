@@ -30,7 +30,7 @@
         <h4 class="mb-1">
             {{ commission.period_label|default(format_date(commission.period_start) ~ ' - ' ~ format_date(commission.period_end)) }}
         </h4>
-        <p class="text-muted mb-1">{{ commission.customer.name }}</p>
+        <p class="text-muted mb-1">{{ commission.customer_name }}</p>
         {% if commission.status == 'draft' %}
             <span class="badge bg-secondary fs-6">Draft</span>
         {% elseif commission.status == 'approved' %}
@@ -118,7 +118,7 @@
                 <h6 class="mb-0"><i class="bi bi-wallet2 me-2"></i>Prepaid Usage</h6>
             </div>
             <div class="card-body">
-                <div class="fs-4 fw-bold">{{ format_currency(commission.prepaid_usage) }}</div>
+                <div class="fs-4 fw-bold">{{ format_currency(commission.total_prepaid) }}</div>
                 <p class="text-muted small mb-0">Tracked separately, managed by operator.</p>
             </div>
         </div>
@@ -203,7 +203,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for item in commission.line_items %}
+                            {% for item in line_items %}
                             <tr>
                                 <td><span class="badge bg-secondary">{{ item.type }}</span></td>
                                 <td>{{ item.description }}</td>

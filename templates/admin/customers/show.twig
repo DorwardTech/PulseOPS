@@ -125,7 +125,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-end">
-                                    <form method="POST" action="/customers/{{ customer.id }}/portal-users/{{ user.id }}/toggle" class="d-inline">
+                                    <form method="POST" action="/customers/{{ customer.id }}/portal/{{ user.id }}/toggle" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                         <button type="submit" class="btn btn-sm btn-outline-{{ user.is_active ? 'warning' : 'success' }}">
                                             {{ user.is_active ? 'Disable' : 'Enable' }}
@@ -148,7 +148,7 @@
         <div class="modal fade" id="addPortalUserModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <form method="POST" action="/customers/{{ customer.id }}/portal-users">
+                    <form method="POST" action="/customers/{{ customer.id }}/portal">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <div class="modal-header">
                             <h5 class="modal-title">Add Portal User</h5>

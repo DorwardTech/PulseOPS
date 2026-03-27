@@ -148,7 +148,7 @@ class NayaxService
                 'status'             => $statusBit === 1 ? 'online' : 'offline',
                 'vpos_id'            => isset($m['VPOSID']) ? (string) $m['VPOSID'] : null,
                 'device_hardware_id' => isset($m['DeviceID']) ? (string) $m['DeviceID'] : null,
-                'firmware_version'   => $m['VPOSSerialNumber'] ?? null,
+                'firmware_version'   => $m['DeviceFirmwareVersion'] ?? $m['FirmwareVersion'] ?? $m['SoftwareVersion'] ?? null,
                 'latitude'           => $m['GeoLatitude'] ?? null,
                 'longitude'          => $m['GeoLongitude'] ?? null,
                 'last_communication' => $m['LastUpdated'] ?? null,

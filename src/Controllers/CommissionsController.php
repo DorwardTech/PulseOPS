@@ -190,24 +190,44 @@ class CommissionsController
         $processingFee = $customer['processing_fee']
             ?? (float) $this->settings->get('default_processing_fee', 0);
 
-        // Get machine-level overrides
-        $machineOverrides = $this->db->fetchAll(
+        // Get machine-level overrides (keyed by machine id)
+        $machineOverrides = [];
+        $overrideRows = $this->db->fetchAll(
             "SELECT id, commission_rate FROM machines
              WHERE customer_id = ? AND commission_rate IS NOT NULL",
             [$customerId]
         );
+        foreach ($overrideRows as $row) {
+            $machineOverrides[(int) $row['id']] = (float) $row['commission_rate'];
+        }
 
-        // Aggregate revenue entries into totals
+        // Aggregate revenue entries, applying machine-level commission rates
         $totalCash = 0;
         $totalCard = 0;
         $totalPrepaid = 0;
         $totalCardTransactions = 0;
+        $weightedCommissionNumerator = 0; // sum of (machine_gross * machine_rate)
+        $totalGrossForWeighting = 0;
         foreach ($revenueEntries as $entry) {
-            $totalCash += (float) ($entry['cash_amount'] ?? 0);
-            $totalCard += (float) ($entry['card_amount'] ?? 0);
+            $cash = (float) ($entry['cash_amount'] ?? 0);
+            $card = (float) ($entry['card_amount'] ?? 0);
+            $totalCash += $cash;
+            $totalCard += $card;
             $totalPrepaid += (float) ($entry['prepaid_amount'] ?? 0);
             $totalCardTransactions += (int) ($entry['card_transactions'] ?? 0);
+
+            // Use machine override rate if available, else customer rate
+            $machineId = (int) ($entry['machine_id'] ?? 0);
+            $entryRate = $machineOverrides[$machineId] ?? $commissionRate;
+            $entryGross = $cash + $card;
+            $weightedCommissionNumerator += $entryGross * $entryRate;
+            $totalGrossForWeighting += $entryGross;
         }
+
+        // Effective blended commission rate across all machines
+        $effectiveRate = $totalGrossForWeighting > 0
+            ? $weightedCommissionNumerator / $totalGrossForWeighting
+            : $commissionRate;
 
         // Aggregate job costs
         $totalPartsCost = 0;
@@ -222,7 +242,7 @@ class CommissionsController
             'card' => $totalCard,
             'prepaid' => $totalPrepaid,
             'card_transactions' => $totalCardTransactions,
-            'commission_rate' => $commissionRate,
+            'commission_rate' => round($effectiveRate, 2),
             'processing_fee' => $processingFee,
             'parts_cost' => $totalPartsCost,
             'labour_cost' => $totalLabourCost,

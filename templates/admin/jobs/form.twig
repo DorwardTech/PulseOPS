@@ -15,16 +15,25 @@
                     </div>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label for="customer_id" class="form-label">Customer</label>
+                            <select class="form-select" id="customer_id">
+                                <option value="">-- All Customers --</option>
+                                {% for customer in customers %}
+                                    <option value="{{ customer.id }}">{{ customer.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
                             <label for="machine_id" class="form-label">Machine <span class="text-danger">*</span></label>
                             <select class="form-select" id="machine_id" name="machine_id" required>
                                 <option value="">-- Select Machine --</option>
                                 {% for machine in machines %}
-                                    <option value="{{ machine.id }}" {{ job.machine_id == machine.id ? 'selected' }}>{{ machine.name }}</option>
+                                    <option value="{{ machine.id }}" data-customer-id="{{ machine.customer_id }}" data-customer-name="{{ machine.customer_name }}" {{ job.machine_id == machine.id ? 'selected' }}>{{ machine.machine_code }} - {{ machine.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="status_id" class="form-label">Status <span class="text-danger">*</span></label>
                             <select class="form-select" id="status_id" name="status_id" required>
                                 <option value="">-- Select Status --</option>
@@ -133,5 +142,42 @@
     document.getElementById('labour_minutes').addEventListener('input', calcLabourCost);
     document.getElementById('labour_rate').addEventListener('input', calcLabourCost);
     calcLabourCost();
+
+    // Customer <-> Machine interaction
+    const customerSelect = document.getElementById('customer_id');
+    const machineSelect = document.getElementById('machine_id');
+    const allMachineOptions = Array.from(machineSelect.querySelectorAll('option[value]'));
+
+    // When customer changes, filter machines
+    customerSelect.addEventListener('change', function() {
+        const custId = this.value;
+        const currentVal = machineSelect.value;
+        machineSelect.innerHTML = '<option value="">-- Select Machine --</option>';
+        allMachineOptions.forEach(opt => {
+            if (!custId || opt.dataset.customerId === custId) {
+                machineSelect.appendChild(opt.cloneNode(true));
+            }
+        });
+        // Restore selection if still valid
+        if (machineSelect.querySelector('option[value="' + currentVal + '"]')) {
+            machineSelect.value = currentVal;
+        }
+    });
+
+    // When machine changes, auto-select customer
+    machineSelect.addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        if (selected && selected.dataset.customerId) {
+            customerSelect.value = selected.dataset.customerId;
+        }
+    });
+
+    // On page load, if machine is pre-selected, set customer
+    (function() {
+        const selected = machineSelect.options[machineSelect.selectedIndex];
+        if (selected && selected.dataset.customerId) {
+            customerSelect.value = selected.dataset.customerId;
+        }
+    })();
 </script>
 {% endblock %}
