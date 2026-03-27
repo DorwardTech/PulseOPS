@@ -250,7 +250,7 @@ class MachinesController
 
         return $this->twig->render($response, 'admin/machines/show.twig', $this->viewData([
             'machine' => $machine,
-            'revenue_history' => $revenueHistory,
+            'revenue_entries' => $revenueHistory,
             'photos' => $photos,
             'jobs' => $jobs,
             'activity_logs' => $activityLogs,

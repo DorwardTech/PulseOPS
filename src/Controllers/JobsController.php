@@ -127,7 +127,13 @@ class JobsController
         $flashError = $_SESSION['flash_error'] ?? null;
         unset($_SESSION['flash_error']);
 
-        $machines = $this->db->fetchAll("SELECT id, name, machine_code FROM machines ORDER BY name ASC");
+        $machines = $this->db->fetchAll(
+            "SELECT m.id, m.name, m.machine_code, m.customer_id, c.name AS customer_name
+             FROM machines m
+             LEFT JOIN customers c ON m.customer_id = c.id
+             ORDER BY m.name ASC"
+        );
+        $customers = $this->db->fetchAll("SELECT id, name FROM customers WHERE is_active = 1 ORDER BY name ASC");
         $statuses = $this->db->fetchAll("SELECT * FROM job_statuses ORDER BY sort_order ASC, name ASC");
         $users = $this->db->fetchAll("SELECT id, full_name FROM users WHERE is_active = 1 ORDER BY full_name ASC");
 
@@ -137,6 +143,7 @@ class JobsController
             'csrf_token' => $_SESSION['csrf_token'] ?? '',
             'flash_error' => $flashError,
             'machines' => $machines,
+            'customers' => $customers,
             'job_statuses' => $statuses,
             'users' => $users,
         ]);
@@ -265,7 +272,13 @@ class JobsController
             return $response->withHeader('Location', '/jobs')->withStatus(302);
         }
 
-        $machines = $this->db->fetchAll("SELECT id, name, machine_code FROM machines ORDER BY name ASC");
+        $machines = $this->db->fetchAll(
+            "SELECT m.id, m.name, m.machine_code, m.customer_id, c.name AS customer_name
+             FROM machines m
+             LEFT JOIN customers c ON m.customer_id = c.id
+             ORDER BY m.name ASC"
+        );
+        $customers = $this->db->fetchAll("SELECT id, name FROM customers WHERE is_active = 1 ORDER BY name ASC");
         $statuses = $this->db->fetchAll("SELECT * FROM job_statuses ORDER BY sort_order ASC, name ASC");
         $users = $this->db->fetchAll("SELECT id, full_name FROM users WHERE is_active = 1 ORDER BY full_name ASC");
 
@@ -276,6 +289,7 @@ class JobsController
             'flash_error' => $flashError,
             'job' => $job,
             'machines' => $machines,
+            'customers' => $customers,
             'job_statuses' => $statuses,
             'users' => $users,
         ]);

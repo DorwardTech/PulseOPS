@@ -67,8 +67,8 @@
                     <tr>
                         <td>{{ format_date(commission.period_start) }} - {{ format_date(commission.period_end) }}</td>
                         <td>
-                            {% if commission.customer %}
-                                <a href="/customers/{{ commission.customer.id }}">{{ commission.customer.name }}</a>
+                            {% if commission.customer_name %}
+                                <a href="/customers/{{ commission.customer_id }}">{{ commission.customer_name }}</a>
                             {% else %}
                                 --
                             {% endif %}

@@ -154,6 +154,22 @@ class SettingsController
 
         $this->settings->set('nayax_cash_counting_enabled', !empty($data['nayax_cash_counting_enabled']) ? '1' : '0', 'boolean');
 
+        // Auto-import settings
+        $this->settings->set('nayax_auto_import', !empty($data['nayax_auto_import']) ? '1' : '0', 'boolean');
+        if (isset($data['nayax_import_interval'])) {
+            $this->settings->set('nayax_import_interval', trim($data['nayax_import_interval']));
+        }
+        if (isset($data['nayax_import_days'])) {
+            $this->settings->set('nayax_import_days', trim($data['nayax_import_days']));
+        }
+        if (isset($data['nayax_cron_key'])) {
+            $key = trim($data['nayax_cron_key']);
+            if ($key === '') {
+                $key = bin2hex(random_bytes(16));
+            }
+            $this->settings->set('nayax_cron_key', $key);
+        }
+
         $this->settings->clearCache();
 
         $_SESSION['flash_success'] = 'Nayax settings updated successfully.';

@@ -179,6 +179,9 @@ return function (App $app) {
 
     })->add(CsrfMiddleware::class)->add(AuthMiddleware::class);
 
+    // ── API endpoints (key-authenticated, no session) ─────
+    $app->get('/api/nayax/cron', [NayaxController::class, 'cronImport']);
+
     // ── Customer Portal (portal auth) ─────────────────────
     $app->get('/portal/login', [PortalController::class, 'showLogin']);
     $app->post('/portal/login', [PortalController::class, 'login']);

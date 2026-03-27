@@ -162,6 +162,40 @@
                                 <option value="production" {{ settings.nayax_environment == 'production' ? 'selected' }}>Production</option>
                             </select>
                         </div>
+                        <div class="col-12"><hr></div>
+                        <div class="col-12">
+                            <h6>Automatic Import Schedule</h6>
+                            <p class="text-muted small">Automatically import Nayax transactions on a schedule. Requires cron: <code>* * * * * curl -s {{ app_url|default('https://yourdomain.com') }}/api/nayax/cron?key={{ settings.nayax_cron_key|default('generate-a-key') }}</code></p>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="nayax_auto_import" name="nayax_auto_import" value="1" {{ settings.nayax_auto_import ? 'checked' }}>
+                                <label class="form-check-label" for="nayax_auto_import">Enable Auto-Import</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="nayax_import_interval" class="form-label">Import Interval</label>
+                            <select class="form-select" id="nayax_import_interval" name="nayax_import_interval">
+                                <option value="15" {{ settings.nayax_import_interval == '15' ? 'selected' }}>Every 15 minutes</option>
+                                <option value="30" {{ settings.nayax_import_interval == '30' ? 'selected' }}>Every 30 minutes</option>
+                                <option value="60" {{ (settings.nayax_import_interval == '60' or not settings.nayax_import_interval) ? 'selected' }}>Every hour</option>
+                                <option value="360" {{ settings.nayax_import_interval == '360' ? 'selected' }}>Every 6 hours</option>
+                                <option value="720" {{ settings.nayax_import_interval == '720' ? 'selected' }}>Every 12 hours</option>
+                                <option value="1440" {{ settings.nayax_import_interval == '1440' ? 'selected' }}>Daily</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="nayax_import_days" class="form-label">Days to Import</label>
+                            <input type="number" class="form-control" id="nayax_import_days" name="nayax_import_days" value="{{ settings.nayax_import_days|default(7) }}" min="1" max="90">
+                            <div class="form-text">Number of days back to import each run.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="nayax_cron_key" class="form-label">Cron Security Key</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="nayax_cron_key" name="nayax_cron_key" value="{{ settings.nayax_cron_key }}" placeholder="Auto-generated on first save">
+                                <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('nayax_cron_key').value = crypto.randomUUID()">Generate</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary">
