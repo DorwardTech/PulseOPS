@@ -484,6 +484,8 @@ class NayaxController
      */
     private function aggregateToRevenue(): int
     {
+        $cashCountingEnabled = (bool) $this->settings->get('nayax_cash_counting_enabled', false);
+
         $groups = $this->db->fetchAll(
             "SELECT
                 nt.device_id,
@@ -502,6 +504,15 @@ class NayaxController
                AND nd.machine_id IS NOT NULL
              GROUP BY nt.device_id, nd.machine_id, DATE(nt.transaction_date)"
         );
+
+        // When cash counting is disabled, zero out Nayax cash totals
+        // (cash is counted manually, not from Nayax)
+        if (!$cashCountingEnabled) {
+            foreach ($groups as &$g) {
+                $g['cash_total'] = 0;
+            }
+            unset($g);
+        }
 
         $count = 0;
 

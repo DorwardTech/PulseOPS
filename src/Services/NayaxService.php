@@ -60,7 +60,7 @@ class NayaxService
      */
     public function isCashCountingEnabled(): bool
     {
-        return (bool) $this->settings->get('nayax_cash_counting', false);
+        return (bool) $this->settings->get('nayax_cash_counting_enabled', false);
     }
 
     /**
