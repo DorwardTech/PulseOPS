@@ -1,12 +1,12 @@
 {% extends "layouts/portal.twig" %}
 
-{% block title %}Commission - {{ commission.period_label }}{% endblock %}
+{% block title %}Commission - {{ commission.period_label|default(format_date(commission.period_start) ~ ' - ' ~ format_date(commission.period_end)) }}{% endblock %}
 
 {% block content %}
 <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="/portal/commissions" class="text-decoration-none">Commissions</a></li>
-        <li class="breadcrumb-item active">{{ commission.period_label }}</li>
+        <li class="breadcrumb-item active">{{ commission.period_label|default(format_date(commission.period_start) ~ ' - ' ~ format_date(commission.period_end)) }}</li>
     </ol>
 </nav>
 
@@ -31,7 +31,7 @@
                     <tbody>
                         <tr>
                             <th class="text-muted ps-3">Period</th>
-                            <td class="text-end pe-3">{{ commission.period_label }}</td>
+                            <td class="text-end pe-3">{{ commission.period_label|default(format_date(commission.period_start) ~ ' - ' ~ format_date(commission.period_end)) }}</td>
                         </tr>
                         <tr>
                             <th class="text-muted ps-3">Cash Revenue</th>
