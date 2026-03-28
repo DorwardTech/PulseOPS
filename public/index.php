@@ -63,9 +63,6 @@ try {
 } catch (\Throwable $e) {
     http_response_code(500);
     header('Content-Type: text/plain');
-    if (filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-        echo "Error: " . $e->getMessage() . "\n\n" . $e->getTraceAsString();
-    } else {
-        echo "Internal Server Error. Set APP_DEBUG=true in environment for details.";
-    }
+    error_log("PulseOPS Fatal: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    echo "Error: " . $e->getMessage() . "\n\nFile: " . $e->getFile() . ":" . $e->getLine();
 }
