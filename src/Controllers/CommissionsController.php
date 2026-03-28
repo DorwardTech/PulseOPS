@@ -9,6 +9,7 @@ use Slim\Views\Twig;
 use App\Services\Database;
 use App\Services\AuthService;
 use App\Services\SettingsService;
+use App\Services\CommissionService;
 use App\Helpers\CommissionCalculator;
 
 class CommissionsController
@@ -17,7 +18,8 @@ class CommissionsController
         private Twig $twig,
         private Database $db,
         private AuthService $auth,
-        private SettingsService $settings
+        private SettingsService $settings,
+        private CommissionService $commissionService
     ) {}
 
     /**
@@ -152,184 +154,21 @@ class CommissionsController
             return $response->withHeader('Location', '/commissions/generate')->withStatus(302);
         }
 
-        $customer = $this->db->fetch("SELECT * FROM customers WHERE id = ?", [$customerId]);
-        if (!$customer) {
-            $_SESSION['flash_error'] = 'Customer not found.';
+        try {
+            $authUser = $this->auth->user();
+            $gen = $this->commissionService->generateForCustomer(
+                $customerId,
+                $periodStart,
+                $periodEnd,
+                $authUser['id'] ?? null
+            );
+
+            $_SESSION['flash_success'] = 'Commission generated successfully.';
+            return $response->withHeader('Location', "/commissions/{$gen['id']}")->withStatus(302);
+        } catch (\RuntimeException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
             return $response->withHeader('Location', '/commissions/generate')->withStatus(302);
         }
-
-        // 1. Get all approved revenue for customer's machines in the period
-        $revenueEntries = $this->db->fetchAll(
-            "SELECT r.*
-             FROM revenue r
-             JOIN machines m ON r.machine_id = m.id
-             WHERE m.customer_id = ?
-               AND r.status = 'approved'
-               AND r.collection_date BETWEEN ? AND ?",
-            [$customerId, $periodStart, $periodEnd]
-        );
-
-        // 2. Get all job parts/labour costs in the period
-        $jobCosts = $this->db->fetchAll(
-            "SELECT j.id AS job_id,
-                    COALESCE(j.parts_cost, 0) AS parts_cost,
-                    COALESCE(j.labour_cost, 0) AS labour_cost
-             FROM maintenance_jobs j
-             JOIN machines m ON j.machine_id = m.id
-             WHERE m.customer_id = ?
-               AND j.completed_at BETWEEN ? AND ?",
-            [$customerId, $periodStart, $periodEnd]
-        );
-
-        // 3. Get carry_forward from customer
-        $carryForward = (float) ($customer['carry_forward'] ?? 0);
-
-        // 4. Calculate using machine-level commission rates
-        // Each machine has its own commission_rate. Customer rate is only a default.
-        $defaultRate = (float) ($customer['commission_rate']
-            ?? $this->settings->get('default_commission_rate', 0));
-        $processingFee = $customer['processing_fee']
-            ?? (float) $this->settings->get('default_processing_fee', 0);
-
-        // Get commission rate for each machine (keyed by machine id)
-        $machineRates = [];
-        $machineRows = $this->db->fetchAll(
-            "SELECT id, commission_rate FROM machines WHERE customer_id = ?",
-            [$customerId]
-        );
-        foreach ($machineRows as $row) {
-            // Use machine rate if set, otherwise fall back to customer/system default
-            $machineRates[(int) $row['id']] = $row['commission_rate'] !== null
-                ? (float) $row['commission_rate']
-                : $defaultRate;
-        }
-
-        // Aggregate revenue entries using per-machine commission rates
-        $totalCash = 0;
-        $totalCard = 0;
-        $totalPrepaid = 0;
-        $totalCardTransactions = 0;
-        $weightedCommissionNumerator = 0;
-        $totalGrossForWeighting = 0;
-        foreach ($revenueEntries as $entry) {
-            $cash = (float) ($entry['cash_amount'] ?? 0);
-            $card = (float) ($entry['card_amount'] ?? 0);
-            $totalCash += $cash;
-            $totalCard += $card;
-            $totalPrepaid += (float) ($entry['prepaid_amount'] ?? 0);
-            $totalCardTransactions += (int) ($entry['card_transactions'] ?? 0);
-
-            $machineId = (int) ($entry['machine_id'] ?? 0);
-            $entryRate = $machineRates[$machineId] ?? $defaultRate;
-            $entryGross = $cash + $card;
-            $weightedCommissionNumerator += $entryGross * $entryRate;
-            $totalGrossForWeighting += $entryGross;
-        }
-
-        // Effective blended rate (weighted average across machines)
-        $effectiveRate = $totalGrossForWeighting > 0
-            ? $weightedCommissionNumerator / $totalGrossForWeighting
-            : $defaultRate;
-
-        // Aggregate job costs
-        $totalPartsCost = 0;
-        $totalLabourCost = 0;
-        foreach ($jobCosts as $job) {
-            $totalPartsCost += (float) ($job['parts_cost'] ?? 0);
-            $totalLabourCost += (float) ($job['labour_cost'] ?? 0);
-        }
-
-        $result = CommissionCalculator::calculate([
-            'cash' => $totalCash,
-            'card' => $totalCard,
-            'prepaid' => $totalPrepaid,
-            'card_transactions' => $totalCardTransactions,
-            'commission_rate' => round($effectiveRate, 2),
-            'processing_fee' => $processingFee,
-            'parts_cost' => $totalPartsCost,
-            'labour_cost' => $totalLabourCost,
-            'carry_forward_in' => $carryForward,
-        ]);
-
-        // 5. Store in commission_payments (check for existing first)
-        $authUser = $this->auth->user();
-
-        $existing = $this->db->fetch(
-            "SELECT id, status FROM commission_payments
-             WHERE customer_id = ? AND period_start = ? AND period_end = ?",
-            [$customerId, $periodStart, $periodEnd]
-        );
-
-        if ($existing && !in_array($existing['status'], ['draft', 'void'], true)) {
-            $_SESSION['flash_error'] = "A commission for this period already exists and is {$existing['status']}. Void it first to regenerate.";
-            return $response->withHeader('Location', "/commissions/{$existing['id']}")->withStatus(302);
-        }
-
-        $commissionData = [
-            'total_cash' => $totalCash,
-            'total_card' => $totalCard,
-            'total_prepaid' => $totalPrepaid,
-            'total_card_transactions' => $totalCardTransactions,
-            'commission_rate' => $result['commission_rate'],
-            'processing_fee_rate' => $result['processing_fee_rate'],
-            'total_parts_cost' => $totalPartsCost,
-            'total_labour_cost' => $totalLabourCost,
-            'carry_forward_in' => $result['carry_forward_in'],
-            'carry_forward_out' => $result['carry_forward_out'],
-            'gross_revenue' => $result['gross_revenue'],
-            'processing_fees' => $result['transaction_fees'],
-            'net_revenue' => $result['net_revenue'],
-            'parts_deduction' => $result['parts_deduction'],
-            'labour_deduction' => $result['labour_deduction'],
-            'adjustments_total' => $result['adjustments_total'],
-            'commission_calculated' => $result['commission_calculated'],
-            'commission_amount' => $result['commission_amount'],
-            'updated_at' => date('Y-m-d H:i:s'),
-        ];
-
-        if ($existing) {
-            // Update existing draft/void commission
-            $commissionId = (int) $existing['id'];
-            $commissionData['status'] = 'draft';
-            $commissionData['generated_by'] = $authUser['id'] ?? null;
-            $this->db->update('commission_payments', $commissionData, 'id = ?', [$commissionId]);
-
-            // Clear old line items before re-adding
-            $this->db->delete('commission_line_items', 'commission_id = ?', [$commissionId]);
-        } else {
-            // Insert new commission
-            $commissionData['customer_id'] = $customerId;
-            $commissionData['period_start'] = $periodStart;
-            $commissionData['period_end'] = $periodEnd;
-            $commissionData['status'] = 'draft';
-            $commissionData['generated_by'] = $authUser['id'] ?? null;
-            $commissionId = $this->db->insert('commission_payments', $commissionData);
-        }
-
-        // Store line items if provided by calculator
-        if (!empty($result['line_items'])) {
-            foreach ($result['line_items'] as $item) {
-                $this->db->insert('commission_line_items', [
-                    'commission_id' => $commissionId,
-                    'machine_id' => $item['machine_id'] ?? null,
-                    'description' => $item['description'] ?? '',
-                    'amount' => $item['amount'] ?? 0,
-                    'type' => $item['type'] ?? 'revenue',
-                    'created_at' => date('Y-m-d H:i:s'),
-                ]);
-            }
-        }
-
-        // 6. Update customer carry_forward if needed
-        if (isset($result['carry_forward_out'])) {
-            $this->db->update('customers', [
-                'carry_forward' => $result['carry_forward_out'],
-                'updated_at' => date('Y-m-d H:i:s'),
-            ], 'id = ?', [$customerId]);
-        }
-
-        $_SESSION['flash_success'] = 'Commission generated successfully.';
-        return $response->withHeader('Location', "/commissions/{$commissionId}")->withStatus(302);
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Services\AuthService;
 use App\Services\SettingsService;
 use App\Services\NayaxService;
 use App\Services\AuditService;
+use App\Services\CommissionService;
 
 return function (ContainerBuilder $containerBuilder) {
     $containerBuilder->addDefinitions([
@@ -33,6 +34,10 @@ return function (ContainerBuilder $containerBuilder) {
 
         AuditService::class => function (ContainerInterface $c) {
             return new AuditService($c->get(Database::class), $c->get(AuthService::class));
+        },
+
+        CommissionService::class => function (ContainerInterface $c) {
+            return new CommissionService($c->get(Database::class), $c->get(SettingsService::class));
         },
 
         NayaxService::class => function (ContainerInterface $c) {

@@ -33,18 +33,22 @@ class JobsController
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
 
-        $status = $params['status'] ?? '';
+        $statusId = $params['status_id'] ?? '';
         $machineId = $params['machine_id'] ?? '';
         $priority = $params['priority'] ?? '';
         $assignedTo = $params['assigned_to'] ?? '';
         $search = trim($params['search'] ?? '');
+        $showAll = !empty($params['show_all']);
 
         $where = ['1=1'];
         $bindings = [];
 
-        if ($status !== '') {
+        if ($statusId !== '') {
             $where[] = 'j.status_id = ?';
-            $bindings[] = (int) $status;
+            $bindings[] = (int) $statusId;
+        } elseif (!$showAll) {
+            // Default: exclude closed/completed jobs
+            $where[] = "(js.slug NOT IN ('closed', 'completed', 'cancelled') OR js.slug IS NULL)";
         }
         if ($machineId !== '') {
             $where[] = 'j.machine_id = ?';
@@ -69,7 +73,9 @@ class JobsController
         $whereClause = implode(' AND ', $where);
 
         $totalCount = (int) $this->db->fetchColumn(
-            "SELECT COUNT(*) FROM maintenance_jobs j WHERE {$whereClause}",
+            "SELECT COUNT(*) FROM maintenance_jobs j
+             LEFT JOIN job_statuses js ON j.status_id = js.id
+             WHERE {$whereClause}",
             $bindings
         );
 
@@ -104,11 +110,12 @@ class JobsController
             'machines' => $machines,
             'users' => $users,
             'filters' => [
-                'status' => $status,
+                'status_id' => $statusId,
                 'machine_id' => $machineId,
                 'priority' => $priority,
                 'assigned_to' => $assignedTo,
                 'search' => $search,
+                'show_all' => $showAll,
             ],
             'pagination' => [
                 'current_page' => $page,
@@ -131,7 +138,7 @@ class JobsController
             "SELECT m.id, m.name, m.machine_code, m.customer_id, c.name AS customer_name
              FROM machines m
              LEFT JOIN customers c ON m.customer_id = c.id
-             ORDER BY m.name ASC"
+             ORDER BY m.machine_code ASC"
         );
         $customers = $this->db->fetchAll("SELECT id, name FROM customers WHERE is_active = 1 ORDER BY name ASC");
         $statuses = $this->db->fetchAll("SELECT * FROM job_statuses ORDER BY sort_order ASC, name ASC");
@@ -276,7 +283,7 @@ class JobsController
             "SELECT m.id, m.name, m.machine_code, m.customer_id, c.name AS customer_name
              FROM machines m
              LEFT JOIN customers c ON m.customer_id = c.id
-             ORDER BY m.name ASC"
+             ORDER BY m.machine_code ASC"
         );
         $customers = $this->db->fetchAll("SELECT id, name FROM customers WHERE is_active = 1 ORDER BY name ASC");
         $statuses = $this->db->fetchAll("SELECT * FROM job_statuses ORDER BY sort_order ASC, name ASC");

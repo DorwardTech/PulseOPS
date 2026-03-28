@@ -21,12 +21,12 @@ $settings = $container->get(SettingsService::class);
 
 echo "[" . date('Y-m-d H:i:s') . "] Nayax Transaction Import started\n";
 
-if ($settings->get('nayax_enabled') !== 'true') {
+if (!$settings->get('nayax_enabled')) {
     echo "Nayax integration is disabled. Skipping.\n";
     exit(0);
 }
 
-$cashCountingEnabled = $settings->get('nayax_cash_counting_enabled') === 'true';
+$cashCountingEnabled = (bool) $settings->get('nayax_cash_counting_enabled', false);
 
 try {
     // Import last 24 hours of transactions
