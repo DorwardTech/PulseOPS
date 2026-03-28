@@ -633,7 +633,7 @@ class PortalController
         $notes = $this->db->fetchAll(
             "SELECT jn.*, u.full_name AS author_name
              FROM job_notes jn
-             LEFT JOIN users u ON jn.created_by = u.id
+             LEFT JOIN users u ON jn.user_id = u.id
              WHERE jn.job_id = ?
              ORDER BY jn.created_at DESC",
             [$jobId]

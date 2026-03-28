@@ -9,6 +9,7 @@ use Slim\Views\Twig;
 use App\Services\Database;
 use App\Services\AuthService;
 use App\Services\AuditService;
+use App\Services\MailService;
 
 class CustomersController
 {
@@ -16,7 +17,8 @@ class CustomersController
         private Twig $twig,
         private Database $db,
         private AuthService $auth,
-        private AuditService $audit
+        private AuditService $audit,
+        private MailService $mail
     ) {}
 
     /**
@@ -435,7 +437,7 @@ class CustomersController
         $customerId = (int) $args['id'];
         $data = $request->getParsedBody();
 
-        $customer = $this->db->fetch("SELECT id FROM customers WHERE id = ?", [$customerId]);
+        $customer = $this->db->fetch("SELECT id, name FROM customers WHERE id = ?", [$customerId]);
         if (!$customer) {
             $_SESSION['flash_error'] = 'Customer not found.';
             return $response->withHeader('Location', '/customers')->withStatus(302);
@@ -467,7 +469,18 @@ class CustomersController
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $_SESSION['flash_success'] = 'Portal user created successfully.';
+        // Send welcome email with login credentials
+        $customerName = $customer['name'] ?? 'Customer';
+        $emailSent = $this->mail->sendPortalWelcome($email, $name, $password, $customerName);
+
+        $message = 'Portal user created successfully.';
+        if ($emailSent) {
+            $message .= ' Welcome email sent.';
+        } else {
+            $message .= ' Welcome email could not be sent — check SMTP settings.';
+        }
+
+        $_SESSION['flash_success'] = $message;
         return $response->withHeader('Location', "/customers/{$customerId}/portal")->withStatus(302);
     }
 
