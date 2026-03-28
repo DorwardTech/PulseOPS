@@ -45,9 +45,11 @@ try {
     // Build DI Container
     $containerBuilder = new ContainerBuilder();
 
-    // DI compilation disabled — causes stale cache 504s on deploy
-    // when controller signatures change. The performance gain is
-    // negligible for this app size.
+    // Clean up any stale DI cache from previous production builds
+    $diCachePath = __DIR__ . '/../var/cache/di';
+    if (is_dir($diCachePath)) {
+        array_map('unlink', glob($diCachePath . '/*.php') ?: []);
+    }
 
     (require __DIR__ . '/../config/container.php')($containerBuilder);
     $container = $containerBuilder->build();
