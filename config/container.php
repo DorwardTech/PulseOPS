@@ -11,6 +11,7 @@ use App\Services\SettingsService;
 use App\Services\NayaxService;
 use App\Services\AuditService;
 use App\Services\CommissionService;
+use App\Services\MailService;
 
 return function (ContainerBuilder $containerBuilder) {
     $containerBuilder->addDefinitions([
@@ -34,6 +35,10 @@ return function (ContainerBuilder $containerBuilder) {
 
         AuditService::class => function (ContainerInterface $c) {
             return new AuditService($c->get(Database::class), $c->get(AuthService::class));
+        },
+
+        MailService::class => function (ContainerInterface $c) {
+            return new MailService($c->get(SettingsService::class));
         },
 
         CommissionService::class => function (ContainerInterface $c) {
