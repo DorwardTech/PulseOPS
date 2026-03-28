@@ -48,11 +48,12 @@
 </div>
 
 <div class="row g-4">
-    <!-- Commission Breakdown -->
+    <!-- Left Column: Breakdown + Machine Detail -->
     <div class="col-lg-6">
+        <!-- Overall Commission Breakdown -->
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white border-bottom">
-                <h6 class="mb-0"><i class="bi bi-calculator me-2"></i>Commission Breakdown</h6>
+                <h6 class="mb-0"><i class="bi bi-calculator me-2"></i>Commission Summary</h6>
             </div>
             <div class="card-body">
                 <ul class="commission-breakdown">
@@ -72,47 +73,54 @@
                         <span>Transaction Fees ({{ commission.total_card_transactions|default(0) }} txns &times; {{ format_currency(commission.processing_fee_rate) }})</span>
                         <span>-{{ format_currency(commission.processing_fees) }}</span>
                     </li>
+                    {% if commission.total_parts_cost > 0 %}
                     <li class="deduction">
-                        <span>Parts Deduction ({{ format_currency(commission.total_parts_cost) }})</span>
+                        <span>Parts Deduction</span>
                         <span>-{{ format_currency(commission.parts_deduction) }}</span>
                     </li>
+                    {% endif %}
+                    {% if commission.total_labour_cost > 0 %}
                     <li class="deduction">
-                        <span>Labour Deduction ({{ format_currency(commission.total_labour_cost) }})</span>
+                        <span>Labour Deduction</span>
                         <span>-{{ format_currency(commission.labour_deduction) }}</span>
                     </li>
+                    {% endif %}
                     <li class="total">
                         <span>Net Revenue</span>
                         <span>{{ format_currency(commission.net_revenue) }}</span>
                     </li>
                     <li>
-                        <span>Commission (Net &times; {{ commission.commission_rate }}%)</span>
+                        <span>Commission (blended {{ commission.commission_rate }}%)</span>
                         <span>{{ format_currency(commission.net_revenue * commission.commission_rate / 100) }}</span>
                     </li>
+                    {% if commission.adjustments_total != 0 %}
                     <li>
                         <span>Adjustments</span>
                         <span>{{ commission.adjustments_total >= 0 ? '+' : '' }}{{ format_currency(commission.adjustments_total) }}</span>
                     </li>
+                    {% endif %}
+                    {% if commission.carry_forward_in != 0 %}
                     <li>
                         <span>Carry Forward In</span>
                         <span>{{ format_currency(commission.carry_forward_in) }}</span>
                     </li>
-                    <li>
-                        <span>Commission Calculated</span>
-                        <span>{{ format_currency(commission.commission_calculated) }}</span>
-                    </li>
+                    {% endif %}
                     <li class="total">
-                        <span>Commission Amount</span>
+                        <span>Commission Payable</span>
                         <span>{{ format_currency(commission.commission_amount) }}</span>
                     </li>
+                    {% if commission.carry_forward_out != 0 %}
                     <li>
                         <span>Carry Forward Out</span>
                         <span>{{ format_currency(commission.carry_forward_out) }}</span>
                     </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
 
         <!-- Prepaid Usage -->
+        {% if commission.total_prepaid > 0 %}
         <div class="card border-0 shadow-sm mt-4">
             <div class="card-header bg-white border-bottom">
                 <h6 class="mb-0"><i class="bi bi-wallet2 me-2"></i>Prepaid Usage</h6>
@@ -122,9 +130,10 @@
                 <p class="text-muted small mb-0">Tracked separately, managed by operator.</p>
             </div>
         </div>
+        {% endif %}
     </div>
 
-    <!-- Actions & Line Items -->
+    <!-- Right Column: Actions + Line Items -->
     <div class="col-lg-6">
         <!-- Action Buttons -->
         <div class="card border-0 shadow-sm mb-4">
@@ -189,7 +198,7 @@
         <!-- Line Items -->
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white border-bottom">
-                <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>Line Items / Adjustments</h6>
+                <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>Adjustments</h6>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -219,7 +228,7 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-3">No line items.</td>
+                                <td colspan="4" class="text-center text-muted py-3">No adjustments.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -258,6 +267,64 @@
         </div>
     </div>
 </div>
+
+<!-- Revenue by Machine Breakdown -->
+{% if machine_breakdown|length > 0 %}
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Revenue by Machine</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 sortable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Machine</th>
+                        <th class="text-end">Cash</th>
+                        <th class="text-end">Card</th>
+                        <th class="text-end">Gross</th>
+                        <th class="text-end">Fees</th>
+                        <th class="text-end">Net</th>
+                        <th class="text-center">Rate</th>
+                        <th class="text-end">Commission</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in machine_breakdown %}
+                    <tr>
+                        <td>
+                            <a href="/machines/{{ m.id }}">{{ m.machine_code }}</a>
+                            <span class="text-muted small d-block">{{ m.name }}</span>
+                        </td>
+                        <td class="text-end">{{ format_currency(m.cash_total) }}</td>
+                        <td class="text-end">{{ format_currency(m.card_total) }}</td>
+                        <td class="text-end">{{ format_currency(m.gross_revenue) }}</td>
+                        <td class="text-end text-danger">-{{ format_currency(m.processing_fees) }}</td>
+                        <td class="text-end">{{ format_currency(m.net_revenue) }}</td>
+                        <td class="text-center">
+                            <span class="badge bg-info">{{ m.effective_rate }}%</span>
+                        </td>
+                        <td class="text-end fw-bold">{{ format_currency(m.commission) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr class="fw-bold">
+                        <td>Total</td>
+                        <td class="text-end">{{ format_currency(commission.total_cash) }}</td>
+                        <td class="text-end">{{ format_currency(commission.total_card) }}</td>
+                        <td class="text-end">{{ format_currency(commission.gross_revenue) }}</td>
+                        <td class="text-end text-danger">-{{ format_currency(commission.processing_fees) }}</td>
+                        <td class="text-end">{{ format_currency(commission.net_revenue) }}</td>
+                        <td class="text-center">{{ commission.commission_rate }}%</td>
+                        <td class="text-end">{{ format_currency(commission.commission_amount) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="mt-4">
     <a href="/commissions" class="btn btn-outline-secondary">

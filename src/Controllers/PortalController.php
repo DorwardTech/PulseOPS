@@ -502,25 +502,37 @@ class PortalController
             return $response->withHeader('Location', '/portal/commissions')->withStatus(302);
         }
 
-        // Get revenue records for this commission period
-        $machineIds = array_column(
-            $this->db->fetchAll("SELECT id FROM machines WHERE customer_id = ?", [$customerId]),
-            'id'
+        // Per-machine breakdown
+        $machineBreakdown = $this->db->fetchAll(
+            "SELECT m.id, m.name, m.machine_code, m.commission_rate,
+                    COALESCE(SUM(r.cash_amount), 0) AS cash_total,
+                    COALESCE(SUM(r.card_amount), 0) AS card_total,
+                    COALESCE(SUM(r.prepaid_amount), 0) AS prepaid_total,
+                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS gross_revenue,
+                    SUM(r.card_transactions) AS card_transactions
+             FROM machines m
+             JOIN revenue r ON m.id = r.machine_id
+             WHERE m.customer_id = ?
+               AND r.status = 'approved'
+               AND r.collection_date BETWEEN ? AND ?
+             GROUP BY m.id, m.name, m.machine_code, m.commission_rate
+             ORDER BY gross_revenue DESC",
+            [$customerId, $commission['period_start'], $commission['period_end']]
         );
 
-        $periodRevenue = [];
-        if (!empty($machineIds)) {
-            $placeholders = implode(',', array_fill(0, count($machineIds), '?'));
-            $periodRevenue = $this->db->fetchAll(
-                "SELECT r.*, m.name AS machine_name, m.machine_code
-                 FROM revenue r
-                 LEFT JOIN machines m ON r.machine_id = m.id
-                 WHERE r.machine_id IN ({$placeholders})
-                   AND r.collection_date BETWEEN ? AND ?
-                 ORDER BY r.collection_date DESC",
-                array_merge($machineIds, [$commission['period_start'], $commission['period_end']])
-            );
+        $defaultRate = (float) ($commission['commission_rate'] ?? 0);
+        $processingFeeRate = (float) ($commission['processing_fee_rate'] ?? 0);
+        foreach ($machineBreakdown as &$machine) {
+            $rate = $machine['commission_rate'] !== null ? (float) $machine['commission_rate'] : $defaultRate;
+            $gross = (float) $machine['gross_revenue'];
+            $fees = (int) $machine['card_transactions'] * $processingFeeRate;
+            $net = $gross - $fees;
+            $machine['effective_rate'] = $rate;
+            $machine['processing_fees'] = round($fees, 2);
+            $machine['net_revenue'] = round($net, 2);
+            $machine['commission'] = round($net * $rate / 100, 2);
         }
+        unset($machine);
 
         return $this->twig->render($response, 'portal/commissions/show.twig', [
             'active_page' => 'commissions',
@@ -529,7 +541,7 @@ class PortalController
             'flash_success' => $flashSuccess,
             'flash_error' => $flashError,
             'commission' => $commission,
-            'period_revenue' => $periodRevenue,
+            'machine_breakdown' => $machineBreakdown,
         ]);
     }
 

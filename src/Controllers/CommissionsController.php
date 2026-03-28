@@ -364,22 +364,43 @@ class CommissionsController
             [$id]
         );
 
-        // Revenue entries in the period for this customer
-        $revenueEntries = $this->db->fetchAll(
-            "SELECT r.*, m.name AS machine_name, m.machine_code
-             FROM revenue r
-             JOIN machines m ON r.machine_id = m.id
+        // Per-machine breakdown: revenue, rate, and commission for each machine
+        $machineBreakdown = $this->db->fetchAll(
+            "SELECT m.id, m.name, m.machine_code, m.commission_rate,
+                    COALESCE(SUM(r.cash_amount), 0) AS cash_total,
+                    COALESCE(SUM(r.card_amount), 0) AS card_total,
+                    COALESCE(SUM(r.prepaid_amount), 0) AS prepaid_total,
+                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS gross_revenue,
+                    SUM(r.card_transactions) AS card_transactions
+             FROM machines m
+             JOIN revenue r ON m.id = r.machine_id
              WHERE m.customer_id = ?
                AND r.status = 'approved'
                AND r.collection_date BETWEEN ? AND ?
-             ORDER BY r.collection_date, m.name",
+             GROUP BY m.id, m.name, m.machine_code, m.commission_rate
+             ORDER BY gross_revenue DESC",
             [$commission['customer_id'], $commission['period_start'], $commission['period_end']]
         );
+
+        // Calculate per-machine commission amounts for display
+        $defaultRate = (float) ($commission['commission_rate'] ?? 0);
+        $processingFeeRate = (float) ($commission['processing_fee_rate'] ?? 0);
+        foreach ($machineBreakdown as &$machine) {
+            $rate = $machine['commission_rate'] !== null ? (float) $machine['commission_rate'] : $defaultRate;
+            $gross = (float) $machine['gross_revenue'];
+            $fees = (int) $machine['card_transactions'] * $processingFeeRate;
+            $net = $gross - $fees;
+            $machine['effective_rate'] = $rate;
+            $machine['processing_fees'] = round($fees, 2);
+            $machine['net_revenue'] = round($net, 2);
+            $machine['commission'] = round($net * $rate / 100, 2);
+        }
+        unset($machine);
 
         return $this->twig->render($response, 'admin/commissions/show.twig', $this->viewData([
             'commission' => $commission,
             'line_items' => $lineItems,
-            'revenue_entries' => $revenueEntries,
+            'machine_breakdown' => $machineBreakdown,
         ]));
     }
 
