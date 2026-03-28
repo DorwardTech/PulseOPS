@@ -530,7 +530,7 @@ class CommissionsController
     public function deleteLineItem(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
-        $lineItemId = (int) $args['line_item_id'];
+        $lineItemId = (int) $args['itemId'];
 
         $lineItem = $this->db->fetch(
             "SELECT id FROM commission_line_items WHERE id = ? AND commission_id = ?",
