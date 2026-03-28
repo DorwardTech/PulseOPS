@@ -89,7 +89,7 @@ class MachinesController
              LEFT JOIN customers c ON m.customer_id = c.id
              LEFT JOIN machine_types mt ON m.machine_type_id = mt.id
              WHERE {$whereClause}
-             ORDER BY m.name ASC
+             ORDER BY m.machine_code ASC
              LIMIT {$perPage} OFFSET {$offset}",
             $bindings
         );
