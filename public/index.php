@@ -42,14 +42,8 @@ try {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
 
-    // Build DI Container
+    // Build DI Container (no compilation — cleared in entrypoint.sh)
     $containerBuilder = new ContainerBuilder();
-
-    // Clean up any stale DI cache from previous production builds
-    $diCachePath = __DIR__ . '/../var/cache/di';
-    if (is_dir($diCachePath)) {
-        array_map('unlink', glob($diCachePath . '/*.php') ?: []);
-    }
 
     (require __DIR__ . '/../config/container.php')($containerBuilder);
     $container = $containerBuilder->build();

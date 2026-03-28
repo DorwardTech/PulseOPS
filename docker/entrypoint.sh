@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Clear all caches on deploy
+rm -rf /var/www/html/var/cache/di/*.php /var/www/html/var/cache/twig/* 2>/dev/null || true
+
+# Reset opcache if available
+php -r "if(function_exists('opcache_reset')) { opcache_reset(); echo 'opcache cleared'; } else { echo 'no opcache'; }" 2>/dev/null || true
+
 # Verify vendor exists (safety net if Docker build failed silently)
 if [ ! -f /var/www/html/vendor/autoload.php ]; then
     echo "WARNING: vendor/autoload.php not found. Running composer install..."
