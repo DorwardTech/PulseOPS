@@ -90,8 +90,8 @@
                         <span>{{ format_currency(commission.net_revenue) }}</span>
                     </li>
                     <li>
-                        <span>Commission (blended {{ commission.commission_rate }}%)</span>
-                        <span>{{ format_currency(commission.net_revenue * commission.commission_rate / 100) }}</span>
+                        <span>Commission (per-machine rates)</span>
+                        <span>{{ format_currency(commission.commission_calculated - commission.carry_forward_in + commission.parts_deduction + commission.labour_deduction) }}</span>
                     </li>
                     {% if commission.adjustments_total != 0 %}
                     <li>
