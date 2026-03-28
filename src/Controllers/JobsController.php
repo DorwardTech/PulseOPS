@@ -84,10 +84,12 @@ class JobsController
         $jobs = $this->db->fetchAll(
             "SELECT j.*, js.name AS status_name, js.color AS status_color,
                     m.name AS machine_name, m.machine_code,
+                    c.name AS customer_name,
                     u.full_name AS assigned_user_name
              FROM maintenance_jobs j
              LEFT JOIN job_statuses js ON j.status_id = js.id
              LEFT JOIN machines m ON j.machine_id = m.id
+             LEFT JOIN customers c ON m.customer_id = c.id
              LEFT JOIN users u ON j.assigned_to = u.id
              WHERE {$whereClause}
              ORDER BY j.created_at DESC
