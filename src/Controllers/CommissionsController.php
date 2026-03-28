@@ -403,110 +403,20 @@ class CommissionsController
             return $response->withHeader('Location', '/commissions')->withStatus(302);
         }
 
-        $customerId = (int) $commission['customer_id'];
-        $periodStart = $commission['period_start'];
-        $periodEnd = $commission['period_end'];
+        try {
+            $authUser = $this->auth->user();
+            $this->commissionService->generateForCustomer(
+                (int) $commission['customer_id'],
+                $commission['period_start'],
+                $commission['period_end'],
+                $authUser['id'] ?? null
+            );
 
-        $customer = $this->db->fetch("SELECT * FROM customers WHERE id = ?", [$customerId]);
-
-        // Re-fetch revenue
-        $revenueEntries = $this->db->fetchAll(
-            "SELECT r.*
-             FROM revenue r
-             JOIN machines m ON r.machine_id = m.id
-             WHERE m.customer_id = ?
-               AND r.status = 'approved'
-               AND r.collection_date BETWEEN ? AND ?",
-            [$customerId, $periodStart, $periodEnd]
-        );
-
-        // Re-fetch job costs
-        $jobCosts = $this->db->fetchAll(
-            "SELECT j.id AS job_id,
-                    COALESCE(j.parts_cost, 0) AS parts_cost,
-                    COALESCE(j.labour_cost, 0) AS labour_cost
-             FROM maintenance_jobs j
-             JOIN machines m ON j.machine_id = m.id
-             WHERE m.customer_id = ?
-               AND j.completed_at BETWEEN ? AND ?",
-            [$customerId, $periodStart, $periodEnd]
-        );
-
-        $carryForward = (float) ($commission['carry_forward_in'] ?? 0);
-
-        $commissionRate = $customer['commission_rate']
-            ?? (float) $this->settings->get('default_commission_rate', 0);
-        $processingFee = $customer['processing_fee']
-            ?? (float) $this->settings->get('default_processing_fee', 0);
-
-        $machineOverrides = $this->db->fetchAll(
-            "SELECT id, commission_rate FROM machines
-             WHERE customer_id = ? AND commission_rate IS NOT NULL",
-            [$customerId]
-        );
-
-        // Aggregate revenue entries into totals
-        $totalCash = 0;
-        $totalCard = 0;
-        $totalPrepaid = 0;
-        $totalCardTransactions = 0;
-        foreach ($revenueEntries as $entry) {
-            $totalCash += (float) ($entry['cash_amount'] ?? 0);
-            $totalCard += (float) ($entry['card_amount'] ?? 0);
-            $totalPrepaid += (float) ($entry['prepaid_amount'] ?? 0);
-            $totalCardTransactions += (int) ($entry['card_transactions'] ?? 0);
+            $_SESSION['flash_success'] = 'Commission recalculated.';
+        } catch (\RuntimeException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
         }
 
-        // Aggregate job costs
-        $totalPartsCost = 0;
-        $totalLabourCost = 0;
-        foreach ($jobCosts as $job) {
-            $totalPartsCost += (float) ($job['parts_cost'] ?? 0);
-            $totalLabourCost += (float) ($job['labour_cost'] ?? 0);
-        }
-
-        $result = CommissionCalculator::calculate([
-            'cash' => $totalCash,
-            'card' => $totalCard,
-            'prepaid' => $totalPrepaid,
-            'card_transactions' => $totalCardTransactions,
-            'commission_rate' => $commissionRate,
-            'processing_fee' => $processingFee,
-            'parts_cost' => $totalPartsCost,
-            'labour_cost' => $totalLabourCost,
-            'carry_forward_in' => $carryForward,
-        ]);
-
-        $this->db->update('commission_payments', [
-            'total_cash' => $totalCash,
-            'total_card' => $totalCard,
-            'total_prepaid' => $totalPrepaid,
-            'total_card_transactions' => $totalCardTransactions,
-            'commission_rate' => $commissionRate,
-            'processing_fee_rate' => $processingFee,
-            'total_parts_cost' => $totalPartsCost,
-            'total_labour_cost' => $totalLabourCost,
-            'gross_revenue' => $result['gross_revenue'],
-            'processing_fees' => $result['transaction_fees'],
-            'net_revenue' => $result['net_revenue'],
-            'parts_deduction' => $result['parts_deduction'],
-            'labour_deduction' => $result['labour_deduction'],
-            'adjustments_total' => $result['adjustments_total'],
-            'commission_calculated' => $result['commission_calculated'],
-            'commission_amount' => $result['commission_amount'],
-            'carry_forward_out' => $result['carry_forward_out'] ?? 0,
-            'updated_at' => date('Y-m-d H:i:s'),
-        ], 'id = ?', [$id]);
-
-        // Update customer carry_forward
-        if (isset($result['carry_forward_out'])) {
-            $this->db->update('customers', [
-                'carry_forward' => $result['carry_forward_out'],
-                'updated_at' => date('Y-m-d H:i:s'),
-            ], 'id = ?', [$customerId]);
-        }
-
-        $_SESSION['flash_success'] = 'Commission recalculated.';
         return $response->withHeader('Location', "/commissions/{$id}")->withStatus(302);
     }
 
