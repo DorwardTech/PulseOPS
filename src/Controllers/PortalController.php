@@ -332,7 +332,7 @@ class PortalController
             'priority' => $data['priority'] ?? 'medium',
             'title' => trim($data['title'] ?? 'Issue reported by customer'),
             'description' => trim($data['description'] ?? ''),
-            'reported_by_customer' => $customerId,
+            'reported_by_customer' => $portalUser['id'],
             'is_customer_visible' => 1,
             'labour_minutes' => 0,
             'labour_rate' => 0,
