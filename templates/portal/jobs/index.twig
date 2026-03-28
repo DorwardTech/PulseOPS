@@ -31,14 +31,14 @@
                         </td>
                         <td>{{ job.machine_name }}</td>
                         <td>
-                            {% if job.priority == 'critical' %}
-                                <span class="badge bg-danger">Critical</span>
+                            {% if job.priority == 'urgent' %}
+                                <span class="badge bg-danger">Urgent</span>
                             {% elseif job.priority == 'high' %}
                                 <span class="badge bg-warning text-dark">High</span>
-                            {% elseif job.priority == 'medium' %}
-                                <span class="badge bg-info text-dark">Medium</span>
+                            {% elseif job.priority == 'normal' %}
+                                <span class="badge bg-primary">Normal</span>
                             {% else %}
-                                <span class="badge bg-secondary">Low</span>
+                                <span class="badge bg-info">Low</span>
                             {% endif %}
                         </td>
                         <td>

@@ -631,11 +631,12 @@ class PortalController
 
         // Job notes (visible to customer)
         $notes = $this->db->fetchAll(
-            "SELECT jn.*, u.full_name AS author_name
+            "SELECT jn.*, COALESCE(u.full_name, cpu.name, 'System') AS author_name
              FROM job_notes jn
              LEFT JOIN users u ON jn.user_id = u.id
-             WHERE jn.job_id = ?
-             ORDER BY jn.created_at DESC",
+             LEFT JOIN customer_portal_users cpu ON jn.portal_user_id = cpu.id
+             WHERE jn.job_id = ? AND jn.is_internal = 0
+             ORDER BY jn.created_at ASC",
             [$jobId]
         );
 
@@ -649,6 +650,47 @@ class PortalController
             'photos' => $photos,
             'notes' => $notes,
         ]);
+    }
+
+    /**
+     * Add a note to a job (portal user).
+     */
+    public function addJobNote(Request $request, Response $response, array $args = []): Response
+    {
+        $portalUser = $this->auth->portalUser();
+        $customerId = $portalUser['customer_id'];
+        $jobId = (int) $args['id'];
+        $data = $request->getParsedBody();
+
+        // Verify job belongs to customer's machine
+        $job = $this->db->fetch(
+            "SELECT j.id FROM maintenance_jobs j
+             JOIN machines m ON j.machine_id = m.id
+             WHERE j.id = ? AND m.customer_id = ? AND j.is_customer_visible = 1",
+            [$jobId, $customerId]
+        );
+
+        if (!$job) {
+            $_SESSION['flash_error'] = 'Job not found.';
+            return $response->withHeader('Location', '/portal/jobs')->withStatus(302);
+        }
+
+        $note = trim((string) ($data['note'] ?? ''));
+        if ($note === '') {
+            $_SESSION['flash_error'] = 'Note cannot be empty.';
+            return $response->withHeader('Location', "/portal/jobs/{$jobId}")->withStatus(302);
+        }
+
+        $this->db->insert('job_notes', [
+            'job_id' => $jobId,
+            'portal_user_id' => $portalUser['id'],
+            'note' => $note,
+            'is_internal' => 0,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $_SESSION['flash_success'] = 'Note added.';
+        return $response->withHeader('Location', "/portal/jobs/{$jobId}")->withStatus(302);
     }
 
     /**

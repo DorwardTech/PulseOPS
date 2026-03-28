@@ -91,18 +91,22 @@
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
                             <tr>
+                                <th>Type</th>
                                 <th>Date Range</th>
                                 <th class="text-center">Imported</th>
                                 <th class="text-center">Skipped</th>
+                                <th>Status</th>
                                 <th>Imported At</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for imp in recent_imports %}
                             <tr>
+                                <td><span class="badge bg-{{ imp.import_type == 'cron' ? 'info' : 'secondary' }}">{{ imp.import_type|default('manual') }}</span></td>
                                 <td>{{ imp.date_from }} to {{ imp.date_to }}</td>
                                 <td class="text-center"><span class="badge bg-success">{{ imp.transactions_imported }}</span></td>
                                 <td class="text-center"><span class="badge bg-secondary">{{ imp.transactions_skipped }}</span></td>
+                                <td><span class="badge bg-{{ imp.status == 'success' ? 'success' : (imp.status == 'failed' ? 'danger' : 'warning') }}">{{ imp.status }}</span></td>
                                 <td>{{ imp.import_date }}</td>
                             </tr>
                             {% endfor %}

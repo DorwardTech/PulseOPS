@@ -30,14 +30,14 @@
                         <tr>
                             <th class="text-muted">Priority</th>
                             <td>
-                                {% if job.priority == 'critical' %}
-                                    <span class="badge bg-danger">Critical</span>
+                                {% if job.priority == 'urgent' %}
+                                    <span class="badge bg-danger">Urgent</span>
                                 {% elseif job.priority == 'high' %}
                                     <span class="badge bg-warning text-dark">High</span>
-                                {% elseif job.priority == 'medium' %}
-                                    <span class="badge bg-info text-dark">Medium</span>
+                                {% elseif job.priority == 'normal' %}
+                                    <span class="badge bg-primary">Normal</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">Low</span>
+                                    <span class="badge bg-info">Low</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -90,13 +90,26 @@
                                 <strong class="small">{{ note.author_name }}</strong>
                                 <small class="text-muted">{{ format_date(note.created_at) }}</small>
                             </div>
-                            <p class="mb-0">{{ note.content|nl2br }}</p>
+                            <p class="mb-0">{{ note.note|nl2br }}</p>
                         </div>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <p class="text-muted text-center mb-0 py-2">No notes on this job.</p>
+                    <p class="text-muted text-center mb-0 py-2">No notes on this job yet.</p>
                 {% endif %}
+            </div>
+            <div class="card-footer bg-white">
+                <form method="POST" action="/portal/jobs/{{ job.id }}/notes">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-2">
+                        <textarea class="form-control" name="note" rows="3" placeholder="Add a note..." required></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-send me-1"></i> Add Note
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
