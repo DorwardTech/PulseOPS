@@ -69,16 +69,16 @@
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 sortable">
                 <thead class="table-light">
                     <tr>
                         <th>Job #</th>
                         <th>Title</th>
                         <th>Machine</th>
+                        <th>Customer</th>
                         <th>Priority</th>
                         <th>Status</th>
                         <th>Assigned</th>
-                        <th>Scheduled</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -96,6 +96,7 @@
                                 --
                             {% endif %}
                         </td>
+                        <td>{{ job.customer_name|default('--') }}</td>
                         <td>
                             {% if job.priority == 'low' %}
                                 <span class="badge bg-info">Low</span>
@@ -111,7 +112,6 @@
                             <span class="badge" style="background-color: {{ job.status_color|default('#6c757d') }}">{{ job.status_name }}</span>
                         </td>
                         <td>{{ job.assigned_user_name|default('Unassigned') }}</td>
-                        <td>{{ job.scheduled_date ? format_date(job.scheduled_date) : '--' }}</td>
                         <td class="text-end">
                             <a href="/jobs/{{ job.id }}" class="btn btn-sm btn-outline-primary" title="View">
                                 <i class="bi bi-eye"></i>
@@ -123,7 +123,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">No jobs found.</td>
+                        <td colspan="8" class="text-center text-muted py-4">No open jobs found. <a href="?show_all=1">Show all jobs</a></td>
                     </tr>
                     {% endfor %}
                 </tbody>
