@@ -198,6 +198,7 @@ return function (App $app) {
         $group->get('/commissions/{id:[0-9]+}', [PortalController::class, 'commissionDetail']);
         $group->get('/jobs', [PortalController::class, 'jobs']);
         $group->get('/jobs/{id:[0-9]+}', [PortalController::class, 'jobDetail']);
+        $group->post('/jobs/{id:[0-9]+}/notes', [PortalController::class, 'addJobNote']);
         $group->get('/settings', [PortalController::class, 'settings']);
         $group->post('/settings/profile', [PortalController::class, 'updateProfile']);
         $group->post('/settings/password', [PortalController::class, 'updatePassword']);

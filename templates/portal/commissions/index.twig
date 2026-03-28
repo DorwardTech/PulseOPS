@@ -24,7 +24,7 @@
                 <tbody>
                     {% for commission in commissions %}
                     <tr>
-                        <td class="fw-medium">{{ commission.period_label }}</td>
+                        <td class="fw-medium">{{ commission.period_label|default(format_date(commission.period_start) ~ ' - ' ~ format_date(commission.period_end)) }}</td>
                         <td class="text-end">{{ format_currency(commission.gross_revenue) }}</td>
                         <td class="text-end">{{ format_currency(commission.net_revenue) }}</td>
                         <td class="text-end fw-medium">{{ format_currency(commission.commission_amount) }}</td>
