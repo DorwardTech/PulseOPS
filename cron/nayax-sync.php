@@ -20,7 +20,7 @@ $settings = $container->get(SettingsService::class);
 
 echo "[" . date('Y-m-d H:i:s') . "] Nayax Device Sync started\n";
 
-if ($settings->get('nayax_enabled') !== 'true') {
+if (!$settings->get('nayax_enabled')) {
     echo "Nayax integration is disabled. Skipping.\n";
     exit(0);
 }

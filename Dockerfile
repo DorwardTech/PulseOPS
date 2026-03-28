@@ -48,6 +48,10 @@ RUN chown -R www-data:www-data /var/www/html \
 RUN mkdir -p /var/www/html/var/cache/di /var/www/html/var/cache/twig /run/nginx \
     && chown -R www-data:www-data /var/www/html/var
 
+# Install crontab
+COPY docker/crontab /etc/crontabs/root
+RUN touch /var/log/cron.log
+
 EXPOSE 80
 
 # Entrypoint: template nginx config then start supervisord

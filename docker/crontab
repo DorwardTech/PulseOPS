@@ -1,0 +1,8 @@
+# Nayax Device Sync - every hour at :05
+5 * * * * cd /var/www/html && php cron/nayax-sync.php >> /var/log/cron.log 2>&1
+
+# Nayax Transaction Import - every hour at :10
+10 * * * * cd /var/www/html && php cron/nayax-transactions.php >> /var/log/cron.log 2>&1
+
+# Nayax Revenue Aggregation - every hour at :15
+15 * * * * cd /var/www/html && php cron/nayax-revenue.php >> /var/log/cron.log 2>&1
