@@ -138,7 +138,7 @@ class JobsController
             "SELECT m.id, m.name, m.machine_code, m.customer_id, c.name AS customer_name
              FROM machines m
              LEFT JOIN customers c ON m.customer_id = c.id
-             ORDER BY m.name ASC"
+             ORDER BY m.machine_code ASC"
         );
         $customers = $this->db->fetchAll("SELECT id, name FROM customers WHERE is_active = 1 ORDER BY name ASC");
         $statuses = $this->db->fetchAll("SELECT * FROM job_statuses ORDER BY sort_order ASC, name ASC");
@@ -283,7 +283,7 @@ class JobsController
             "SELECT m.id, m.name, m.machine_code, m.customer_id, c.name AS customer_name
              FROM machines m
              LEFT JOIN customers c ON m.customer_id = c.id
-             ORDER BY m.name ASC"
+             ORDER BY m.machine_code ASC"
         );
         $customers = $this->db->fetchAll("SELECT id, name FROM customers WHERE is_active = 1 ORDER BY name ASC");
         $statuses = $this->db->fetchAll("SELECT * FROM job_statuses ORDER BY sort_order ASC, name ASC");
