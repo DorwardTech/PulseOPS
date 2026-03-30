@@ -23,4 +23,40 @@ return function (App $app) {
         true,
         true
     );
+
+    // Custom error handler that logs the request URL
+    $errorMiddleware->setDefaultErrorHandler(function (
+        \Psr\Http\Message\ServerRequestInterface $request,
+        \Throwable $exception,
+        bool $displayErrorDetails
+    ) use ($app) {
+        $uri = (string) $request->getUri();
+        $method = $request->getMethod();
+        $code = $exception->getCode() ?: 500;
+
+        // Only log non-404 errors (404s are just bots/scanners)
+        if (!($exception instanceof \Slim\Exception\HttpNotFoundException)) {
+            error_log("{$code} {$method} {$uri} - {$exception->getMessage()}");
+        }
+
+        $response = $app->getResponseFactory()->createResponse();
+
+        if ($exception instanceof \Slim\Exception\HttpNotFoundException) {
+            $response->getBody()->write('<h1>404 - Page Not Found</h1><p><a href="/">Go Home</a></p>');
+            return $response->withStatus(404)->withHeader('Content-Type', 'text/html');
+        }
+
+        if ($exception instanceof \Slim\Exception\HttpMethodNotAllowedException) {
+            $response->getBody()->write('<h1>405 - Method Not Allowed</h1><p><a href="/">Go Home</a></p>');
+            return $response->withStatus(405)->withHeader('Content-Type', 'text/html');
+        }
+
+        // Real errors - show details
+        if ($displayErrorDetails) {
+            $response->getBody()->write("<h1>Error</h1><p>{$exception->getMessage()}</p><pre>{$exception->getTraceAsString()}</pre>");
+        } else {
+            $response->getBody()->write('<h1>Server Error</h1><p>Something went wrong.</p>');
+        }
+        return $response->withStatus((int) $code ?: 500)->withHeader('Content-Type', 'text/html');
+    });
 };
