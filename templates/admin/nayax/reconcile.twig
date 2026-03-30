@@ -1,0 +1,179 @@
+{% extends "layouts/admin.twig" %}
+{% block title %}Nayax Reconciliation{% endblock %}
+{% block page_title %}Nayax Reconciliation{% endblock %}
+{% block content %}
+<!-- Date Filter -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="/nayax/reconcile" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Check
+                </button>
+            </div>
+            <div class="col-md-3">
+                <a href="/nayax/import" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Import
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1">Nayax Card Total</div>
+                <h4 class="mb-0">${{ totals.nayax_card|number_format(2) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1">Revenue Card Total</div>
+                <h4 class="mb-0">${{ totals.revenue_card|number_format(2) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm {{ (totals.nayax_card - totals.revenue_card)|abs > 0.01 ? 'border-danger' : 'border-success' }}">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1">Card Difference</div>
+                <h4 class="mb-0 {{ (totals.nayax_card - totals.revenue_card)|abs > 0.01 ? 'text-danger' : 'text-success' }}">
+                    ${{ (totals.nayax_card - totals.revenue_card)|number_format(2) }}
+                </h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reconciliation Table -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent">
+        <h6 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i>Nayax Transactions vs Revenue (per machine)</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 sortable" style="font-size: 0.9rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Machine</th>
+                        <th>Status</th>
+                        <th class="text-center">Txns</th>
+                        <th class="text-end">Nayax Card</th>
+                        <th class="text-end">Revenue Card</th>
+                        <th class="text-end">Card Diff</th>
+                        <th class="text-end">Nayax Prepaid</th>
+                        <th class="text-end">Revenue Prepaid</th>
+                        <th class="text-center">Unaggregated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in reconciliation %}
+                    <tr class="{{ row.status == 'mismatch' ? 'table-warning' : (row.status == 'unlinked' ? 'table-danger' : (row.status == 'pending' ? 'table-info' : '')) }}">
+                        <td>
+                            {% if row.machine_id %}
+                                <a href="/machines/{{ row.machine_id }}">{{ row.machine_code }}</a>
+                                <span class="text-muted small d-block">{{ row.machine_name }}</span>
+                            {% else %}
+                                <span class="text-danger">{{ row.device_name|default(row.device_id) }}</span>
+                                <span class="text-danger small d-block">Not linked</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row.status == 'ok' %}
+                                <span class="badge bg-success">OK</span>
+                            {% elseif row.status == 'mismatch' %}
+                                <span class="badge bg-warning text-dark">Mismatch</span>
+                            {% elseif row.status == 'unlinked' %}
+                                <span class="badge bg-danger">Unlinked</span>
+                            {% elseif row.status == 'pending' %}
+                                <span class="badge bg-info">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">{{ row.txn_count }}</td>
+                        <td class="text-end">${{ row.nayax_card|number_format(2) }}</td>
+                        <td class="text-end">${{ row.revenue_card|number_format(2) }}</td>
+                        <td class="text-end {{ row.card_diff != 0 ? 'fw-bold text-danger' : 'text-success' }}">
+                            {{ row.card_diff > 0 ? '+' : '' }}${{ row.card_diff|number_format(2) }}
+                        </td>
+                        <td class="text-end">${{ row.nayax_prepaid|number_format(2) }}</td>
+                        <td class="text-end">${{ row.revenue_prepaid|number_format(2) }}</td>
+                        <td class="text-center">
+                            {% if row.unaggregated > 0 %}
+                                <span class="badge bg-warning text-dark">{{ row.unaggregated }} (${{ row.unaggregated_amount|number_format(2) }})</span>
+                            {% else %}
+                                <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">No transactions found for this period.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Unlinked Devices -->
+{% if unlinked_devices|length > 0 %}
+<div class="card border-0 shadow-sm border-danger">
+    <div class="card-header bg-transparent">
+        <h6 class="mb-0 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Unlinked Nayax Devices</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Device ID</th>
+                        <th>Device Name</th>
+                        <th>Serial</th>
+                        <th class="text-center">Transactions</th>
+                        <th class="text-end">Total Amount</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in unlinked_devices %}
+                    <tr>
+                        <td>{{ device.device_id }}</td>
+                        <td>{{ device.device_name|default('--') }}</td>
+                        <td>{{ device.device_serial|default('--') }}</td>
+                        <td class="text-center">{{ device.txn_count }}</td>
+                        <td class="text-end">${{ device.total_amount|number_format(2) }}</td>
+                        <td class="text-end">
+                            <a href="/nayax/devices" class="btn btn-sm btn-outline-primary">Link Device</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="alert alert-info mt-4">
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>Reading this page:</strong>
+    <span class="badge bg-success">OK</span> = Nayax and Revenue match.
+    <span class="badge bg-warning text-dark">Mismatch</span> = amounts differ (check payment type classification).
+    <span class="badge bg-danger">Unlinked</span> = device not linked to a machine (revenue can't be aggregated).
+    <span class="badge bg-info">Pending</span> = unaggregated transactions exist (run re-aggregate).
+</div>
+{% endblock %}
