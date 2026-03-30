@@ -414,7 +414,8 @@ class NayaxController
             $transactions = $this->nayax->getTransactions($dateFrom, $dateTo);
 
             $imported = 0;
-            $skipped = 0;
+            $duplicates = 0;
+            $filtered = 0;
 
             foreach ($transactions as $txn) {
                 $txnId = $txn['transaction_id'] ?? '';
@@ -426,7 +427,7 @@ class NayaxController
                 $amount = (float) ($txn['amount'] ?? 0);
                 $status = $txn['status'] ?? 'completed';
                 if ($amount <= 0 || in_array($status, ['declined', 'failed', 'rejected', 'cancelled', 'error'])) {
-                    $skipped++;
+                    $filtered++;
                     continue;
                 }
 
@@ -438,7 +439,7 @@ class NayaxController
                 );
 
                 if ($exists) {
-                    $skipped++;
+                    $duplicates++;
                     continue;
                 }
 
@@ -453,6 +454,8 @@ class NayaxController
                 ]);
                 $imported++;
             }
+
+            $skipped = $duplicates + $filtered;
 
             // Record the import
             $this->db->insert('nayax_imports', [
@@ -470,7 +473,7 @@ class NayaxController
             // Aggregate imported transactions into revenue
             $aggregated = $this->aggregateToRevenue();
 
-            $_SESSION['flash_success'] = "Import complete. {$imported} transactions imported, {$skipped} skipped (duplicates). {$aggregated} revenue records updated.";
+            $_SESSION['flash_success'] = "Import complete. {$imported} imported, {$duplicates} duplicates, {$filtered} filtered ($0/failed). {$aggregated} revenue records updated.";
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'Import failed: ' . $e->getMessage();
         }
