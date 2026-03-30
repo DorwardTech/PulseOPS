@@ -596,6 +596,167 @@ class NayaxController
     }
 
     /**
+     * Reconciliation: compare Nayax transactions vs aggregated revenue per machine.
+     * Shows gaps, misclassified transactions, and unlinked devices.
+     */
+    public function reconcile(Request $request, Response $response, array $args = []): Response
+    {
+        $flashSuccess = $_SESSION['flash_success'] ?? null;
+        $flashError = $_SESSION['flash_error'] ?? null;
+        unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
+        $params = $request->getQueryParams();
+        $dateFrom = $params['date_from'] ?? date('Y-m-01');
+        $dateTo = $params['date_to'] ?? date('Y-m-d');
+
+        // 1. Nayax transaction totals per device (from raw imported transactions)
+        $nayaxTotals = $this->db->fetchAll(
+            "SELECT nt.device_id,
+                    nd.device_name,
+                    nd.machine_id,
+                    m.machine_code,
+                    m.name AS machine_name,
+                    COUNT(*) AS txn_count,
+                    SUM(CASE WHEN nt.payment_type = 'card' THEN nt.amount ELSE 0 END) AS nayax_card,
+                    SUM(CASE WHEN nt.payment_type IN ('cash', 'coin') THEN nt.amount ELSE 0 END) AS nayax_cash,
+                    SUM(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'qr', 'app') OR nt.payment_type LIKE '%prepaid%' OR nt.payment_type LIKE '%monyx%' THEN nt.amount ELSE 0 END) AS nayax_prepaid,
+                    SUM(nt.amount) AS nayax_total,
+                    SUM(CASE WHEN nt.is_aggregated = 0 THEN 1 ELSE 0 END) AS unaggregated_count,
+                    SUM(CASE WHEN nt.is_aggregated = 0 THEN nt.amount ELSE 0 END) AS unaggregated_amount
+             FROM nayax_transactions nt
+             LEFT JOIN nayax_devices nd ON nt.device_id = nd.device_id
+             LEFT JOIN machines m ON nd.machine_id = m.id
+             WHERE DATE(nt.transaction_date) BETWEEN ? AND ?
+               AND nt.status = 'completed'
+             GROUP BY nt.device_id, nd.device_name, nd.machine_id, m.machine_code, m.name
+             ORDER BY nayax_total DESC",
+            [$dateFrom, $dateTo]
+        );
+
+        // 2. Revenue totals per machine (aggregated records, nayax source only)
+        $revenueTotals = $this->db->fetchAll(
+            "SELECT r.machine_id,
+                    m.machine_code,
+                    m.name AS machine_name,
+                    SUM(r.card_amount) AS revenue_card,
+                    SUM(r.cash_amount) AS revenue_cash,
+                    SUM(r.prepaid_amount) AS revenue_prepaid,
+                    SUM(r.card_amount + r.cash_amount) AS revenue_gross
+             FROM revenue r
+             JOIN machines m ON r.machine_id = m.id
+             WHERE r.source = 'nayax'
+               AND r.collection_date BETWEEN ? AND ?
+             GROUP BY r.machine_id, m.machine_code, m.name
+             ORDER BY revenue_gross DESC",
+            [$dateFrom, $dateTo]
+        );
+
+        // Index revenue by machine_id for easy lookup
+        $revenueByMachine = [];
+        foreach ($revenueTotals as $r) {
+            $revenueByMachine[(int) $r['machine_id']] = $r;
+        }
+
+        // 3. Build reconciliation rows
+        $reconciliation = [];
+        $totalNayaxCard = 0;
+        $totalNayaxCash = 0;
+        $totalNayaxPrepaid = 0;
+        $totalRevenueCard = 0;
+        $totalRevenueCash = 0;
+        $totalRevenuePrepaid = 0;
+
+        foreach ($nayaxTotals as $nt) {
+            $machineId = $nt['machine_id'] ? (int) $nt['machine_id'] : null;
+            $rev = $machineId ? ($revenueByMachine[$machineId] ?? null) : null;
+
+            $nCard = round((float) $nt['nayax_card'], 2);
+            $nCash = round((float) $nt['nayax_cash'], 2);
+            $nPrepaid = round((float) $nt['nayax_prepaid'], 2);
+            $rCard = $rev ? round((float) $rev['revenue_card'], 2) : 0;
+            $rCash = $rev ? round((float) $rev['revenue_cash'], 2) : 0;
+            $rPrepaid = $rev ? round((float) $rev['revenue_prepaid'], 2) : 0;
+
+            $cardDiff = round($nCard - $rCard, 2);
+            $cashDiff = round($nCash - $rCash, 2);
+            $prepaidDiff = round($nPrepaid - $rPrepaid, 2);
+
+            $totalNayaxCard += $nCard;
+            $totalNayaxCash += $nCash;
+            $totalNayaxPrepaid += $nPrepaid;
+            $totalRevenueCard += $rCard;
+            $totalRevenueCash += $rCash;
+            $totalRevenuePrepaid += $rPrepaid;
+
+            $status = 'ok';
+            if (!$machineId) {
+                $status = 'unlinked';
+            } elseif (abs($cardDiff) > 0.01 || abs($prepaidDiff) > 0.01) {
+                $status = 'mismatch';
+            } elseif ((int) $nt['unaggregated_count'] > 0) {
+                $status = 'pending';
+            }
+
+            $reconciliation[] = [
+                'device_id' => $nt['device_id'],
+                'device_name' => $nt['device_name'],
+                'machine_id' => $machineId,
+                'machine_code' => $nt['machine_code'],
+                'machine_name' => $nt['machine_name'],
+                'txn_count' => (int) $nt['txn_count'],
+                'nayax_card' => $nCard,
+                'nayax_cash' => $nCash,
+                'nayax_prepaid' => $nPrepaid,
+                'revenue_card' => $rCard,
+                'revenue_cash' => $rCash,
+                'revenue_prepaid' => $rPrepaid,
+                'card_diff' => $cardDiff,
+                'cash_diff' => $cashDiff,
+                'prepaid_diff' => $prepaidDiff,
+                'unaggregated' => (int) $nt['unaggregated_count'],
+                'unaggregated_amount' => round((float) $nt['unaggregated_amount'], 2),
+                'status' => $status,
+            ];
+        }
+
+        // 4. Unlinked devices
+        $unlinkedDevices = $this->db->fetchAll(
+            "SELECT nd.device_id, nd.device_name, nd.device_serial,
+                    COUNT(nt.id) AS txn_count,
+                    COALESCE(SUM(nt.amount), 0) AS total_amount
+             FROM nayax_devices nd
+             LEFT JOIN nayax_transactions nt ON nd.device_id = nt.device_id
+                 AND DATE(nt.transaction_date) BETWEEN ? AND ?
+             WHERE nd.machine_id IS NULL
+             GROUP BY nd.device_id, nd.device_name, nd.device_serial
+             ORDER BY total_amount DESC",
+            [$dateFrom, $dateTo]
+        );
+
+        return $this->twig->render($response, 'admin/nayax/reconcile.twig', [
+            'active_page' => 'nayax',
+            'auth_user' => $this->auth->user(),
+            'csrf_token' => $_SESSION['csrf_token'] ?? '',
+            'flash_success' => $flashSuccess,
+            'flash_error' => $flashError,
+            'reconciliation' => $reconciliation,
+            'unlinked_devices' => $unlinkedDevices,
+            'totals' => [
+                'nayax_card' => round($totalNayaxCard, 2),
+                'nayax_cash' => round($totalNayaxCash, 2),
+                'nayax_prepaid' => round($totalNayaxPrepaid, 2),
+                'revenue_card' => round($totalRevenueCard, 2),
+                'revenue_cash' => round($totalRevenueCash, 2),
+                'revenue_prepaid' => round($totalRevenuePrepaid, 2),
+            ],
+            'filters' => [
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
+        ]);
+    }
+
+    /**
      * Diagnostic: show distinct PaymentMethod and RecognitionMethod values from raw_data.
      */
     public function diagnostics(Request $request, Response $response, array $args = []): Response
