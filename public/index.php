@@ -9,6 +9,18 @@ use Dotenv\Dotenv;
 // Autoloader
 require __DIR__ . '/../vendor/autoload.php';
 
+// One-time opcache reset after deploy (triggered by version file change)
+if (function_exists('opcache_reset')) {
+    $versionFile = __DIR__ . '/../.deploy_version';
+    $cacheFile = '/tmp/.opcache_version';
+    $currentVersion = @file_get_contents($versionFile) ?: filemtime(__FILE__);
+    $cachedVersion = @file_get_contents($cacheFile);
+    if ($cachedVersion !== (string) $currentVersion) {
+        opcache_reset();
+        @file_put_contents($cacheFile, (string) $currentVersion);
+    }
+}
+
 // Load environment variables
 $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->safeLoad();
