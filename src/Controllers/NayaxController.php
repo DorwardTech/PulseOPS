@@ -414,7 +414,8 @@ class NayaxController
             $transactions = $this->nayax->getTransactions($dateFrom, $dateTo);
 
             $imported = 0;
-            $skipped = 0;
+            $duplicates = 0;
+            $filtered = 0;
 
             foreach ($transactions as $txn) {
                 $txnId = $txn['transaction_id'] ?? '';
@@ -426,7 +427,7 @@ class NayaxController
                 $amount = (float) ($txn['amount'] ?? 0);
                 $status = $txn['status'] ?? 'completed';
                 if ($amount <= 0 || in_array($status, ['declined', 'failed', 'rejected', 'cancelled', 'error'])) {
-                    $skipped++;
+                    $filtered++;
                     continue;
                 }
 
@@ -438,7 +439,7 @@ class NayaxController
                 );
 
                 if ($exists) {
-                    $skipped++;
+                    $duplicates++;
                     continue;
                 }
 
@@ -453,6 +454,8 @@ class NayaxController
                 ]);
                 $imported++;
             }
+
+            $skipped = $duplicates + $filtered;
 
             // Record the import
             $this->db->insert('nayax_imports', [
@@ -470,7 +473,7 @@ class NayaxController
             // Aggregate imported transactions into revenue
             $aggregated = $this->aggregateToRevenue();
 
-            $_SESSION['flash_success'] = "Import complete. {$imported} transactions imported, {$skipped} skipped (duplicates). {$aggregated} revenue records updated.";
+            $_SESSION['flash_success'] = "Import complete. {$imported} imported, {$duplicates} duplicates, {$filtered} filtered ($0/failed). {$aggregated} revenue records updated.";
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'Import failed: ' . $e->getMessage();
         }
@@ -492,10 +495,10 @@ class NayaxController
                 nd.machine_id,
                 DATE(nt.transaction_date) as txn_date,
                 SUM(CASE WHEN nt.payment_type IN ('cash', 'coin') THEN nt.amount ELSE 0 END) as cash_total,
-                SUM(CASE WHEN nt.payment_type IN ('card') THEN nt.amount ELSE 0 END) as card_total,
-                SUM(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'qr', 'app') OR nt.payment_type LIKE '%prepaid%' OR nt.payment_type LIKE '%monyx%' THEN nt.amount ELSE 0 END) as prepaid_total,
-                COUNT(CASE WHEN nt.payment_type IN ('card') THEN 1 END) as card_txn_count,
-                COUNT(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'qr', 'app') OR nt.payment_type LIKE '%prepaid%' OR nt.payment_type LIKE '%monyx%' THEN 1 END) as prepaid_txn_count,
+                SUM(CASE WHEN nt.payment_type IN ('card', 'qr', 'app', 'mifh') THEN nt.amount ELSE 0 END) as card_total,
+                SUM(CASE WHEN nt.payment_type IN ('prepaid') OR nt.payment_type LIKE '%prepaid%' OR nt.payment_type LIKE '%monyx%' THEN nt.amount ELSE 0 END) as prepaid_total,
+                COUNT(CASE WHEN nt.payment_type IN ('card', 'qr', 'app', 'mifh') THEN 1 END) as card_txn_count,
+                COUNT(CASE WHEN nt.payment_type IN ('prepaid') OR nt.payment_type LIKE '%prepaid%' OR nt.payment_type LIKE '%monyx%' THEN 1 END) as prepaid_txn_count,
                 GROUP_CONCAT(nt.id) as transaction_ids
              FROM nayax_transactions nt
              JOIN nayax_devices nd ON nd.device_id = nt.device_id
@@ -617,9 +620,9 @@ class NayaxController
                     m.machine_code,
                     m.name AS machine_name,
                     COUNT(*) AS txn_count,
-                    SUM(CASE WHEN nt.payment_type = 'card' THEN nt.amount ELSE 0 END) AS nayax_card,
+                    SUM(CASE WHEN nt.payment_type IN ('card', 'qr', 'app', 'mifh') THEN nt.amount ELSE 0 END) AS nayax_card,
                     SUM(CASE WHEN nt.payment_type IN ('cash', 'coin') THEN nt.amount ELSE 0 END) AS nayax_cash,
-                    SUM(CASE WHEN nt.payment_type IN ('prepaid', 'mifh', 'qr', 'app') OR nt.payment_type LIKE '%prepaid%' OR nt.payment_type LIKE '%monyx%' THEN nt.amount ELSE 0 END) AS nayax_prepaid,
+                    SUM(CASE WHEN nt.payment_type IN ('prepaid') OR nt.payment_type LIKE '%prepaid%' OR nt.payment_type LIKE '%monyx%' THEN nt.amount ELSE 0 END) AS nayax_prepaid,
                     SUM(nt.amount) AS nayax_total,
                     SUM(CASE WHEN nt.is_aggregated = 0 THEN 1 ELSE 0 END) AS unaggregated_count,
                     SUM(CASE WHEN nt.is_aggregated = 0 THEN nt.amount ELSE 0 END) AS unaggregated_amount
@@ -803,19 +806,15 @@ class NayaxController
         // Use MySQL JSON_EXTRACT to reclassify in bulk
         // RecognitionMethod takes priority for prepaid detection
         // Reclassify using PaymentMethod (RecognitionMethod mirrors it in this API)
+        // QR, app, mifh all count as card revenue (commissioned)
+        // Only 'prepaid credit' and 'monyx' are true prepaid (excluded)
         $sql = "UPDATE nayax_transactions SET payment_type = CASE
             WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('cash') THEN 'cash'
             WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('coin', 'coins') THEN 'coin'
             WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) LIKE '%prepaid%' THEN 'prepaid'
             WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) LIKE '%monyx%' THEN 'prepaid'
-            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('qr', 'qrcode', 'qr code') THEN 'qr'
-            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) IN ('mifare', 'mifh') THEN 'mifh'
-            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.PaymentMethod'))) = 'app' THEN 'app'
             WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) LIKE '%prepaid%' THEN 'prepaid'
             WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) LIKE '%monyx%' THEN 'prepaid'
-            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) IN ('mifare', 'mifh') THEN 'mifh'
-            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) IN ('qr', 'qrcode', 'qr code') THEN 'qr'
-            WHEN LOWER(JSON_UNQUOTE(JSON_EXTRACT(raw_data, '$.RecognitionMethod'))) LIKE '%app%' THEN 'app'
             ELSE 'card'
         END
         WHERE raw_data IS NOT NULL";
