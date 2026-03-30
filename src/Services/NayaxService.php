@@ -587,12 +587,12 @@ class NayaxService
             'cash'        => 'cash',
             'coin'        => 'coin',
             'coins'       => 'coin',
-            'qr'          => 'qr',
-            'qrcode'      => 'qr',
-            'qr code'     => 'qr',
-            'app'         => 'app',
-            'mifh'        => 'mifh',
-            'mifare'      => 'mifh',
+            'qr'          => 'card',
+            'qrcode'      => 'card',
+            'qr code'     => 'card',
+            'app'         => 'card',
+            'mifh'        => 'card',
+            'mifare'      => 'card',
         ];
 
         if ($payment !== '' && isset($paymentMap[$payment])) {

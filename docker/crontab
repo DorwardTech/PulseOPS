@@ -1,11 +1,11 @@
-# Nayax Device Sync - every hour at :05
-5 * * * * cd /var/www/html && php cron/nayax-sync.php >> /var/log/cron.log 2>&1
+# Nayax Device Sync - every 6 hours
+5 */6 * * * cd /var/www/html && php cron/nayax-sync.php >> /var/log/cron.log 2>&1
 
-# Nayax Transaction Import - every hour at :10
-10 * * * * cd /var/www/html && php cron/nayax-transactions.php >> /var/log/cron.log 2>&1
+# Nayax Transaction Import - every 15 minutes (frequent to catch all txns before API window rolls)
+*/15 * * * * cd /var/www/html && php cron/nayax-transactions.php >> /var/log/cron.log 2>&1
 
-# Nayax Revenue Aggregation - every hour at :15
-15 * * * * cd /var/www/html && php cron/nayax-revenue.php >> /var/log/cron.log 2>&1
+# Nayax Revenue Aggregation - every 30 minutes
+*/30 * * * * cd /var/www/html && php cron/nayax-revenue.php >> /var/log/cron.log 2>&1
 
 # Auto-generate draft commissions - 1st of every month at 02:00
 0 2 1 * * cd /var/www/html && php cron/generate-commissions.php >> /var/log/cron.log 2>&1
