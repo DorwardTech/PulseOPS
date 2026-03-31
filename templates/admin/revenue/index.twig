@@ -88,9 +88,9 @@
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
                     <option value="">All</option>
-                    <option value="pending" {{ filters.status == 'pending' ? 'selected' }}>Pending</option>
+                    <option value="draft" {{ filters.status == 'draft' ? 'selected' }}>Draft</option>
                     <option value="approved" {{ filters.status == 'approved' ? 'selected' }}>Approved</option>
-                    <option value="verified" {{ filters.status == 'verified' ? 'selected' }}>Verified</option>
+                    <option value="rejected" {{ filters.status == 'rejected' ? 'selected' }}>Rejected</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -137,26 +137,32 @@
                         <td class="text-end fst-italic text-info">{{ format_currency(entry.prepaid_amount) }}</td>
                         <td><span class="badge bg-{{ entry.source == 'nayax' ? 'info' : 'secondary' }}">{{ entry.source }}</span></td>
                         <td>
-                            {% if entry.status == 'verified' %}
-                                <span class="badge bg-success">Verified</span>
-                            {% elseif entry.status == 'approved' %}
-                                <span class="badge bg-info">Approved</span>
+                            {% if entry.status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                            {% elseif entry.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
                             {% else %}
-                                <span class="badge bg-warning text-dark">Pending</span>
+                                <span class="badge bg-warning text-dark">Draft</span>
                             {% endif %}
                         </td>
                         <td class="text-end">
-                            {% if entry.source != 'nayax' %}
-                                <a href="/revenue/{{ entry.id }}/edit" class="btn btn-sm btn-outline-secondary" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <form method="POST" action="/revenue/{{ entry.id }}/delete" class="d-inline" onsubmit="return confirm('Delete this revenue entry?')">
+                            {% if entry.status == 'draft' %}
+                                <form method="POST" action="/revenue/{{ entry.id }}/approve" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                                        <i class="bi bi-trash"></i>
+                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Approve">
+                                        <i class="bi bi-check-lg"></i>
                                     </button>
                                 </form>
                             {% endif %}
+                            <a href="/revenue/{{ entry.id }}/edit" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST" action="/revenue/{{ entry.id }}/delete" class="d-inline" onsubmit="return confirm('Delete this revenue entry?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     {% else %}
