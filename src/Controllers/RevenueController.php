@@ -123,11 +123,14 @@ class RevenueController
             "SELECT id, name FROM customers WHERE is_active = 1 ORDER BY name"
         );
 
+        $draftCount = (int) $this->db->fetchColumn("SELECT COUNT(*) FROM revenue WHERE status = 'draft'");
+
         return $this->twig->render($response, 'admin/revenue/index.twig', $this->viewData([
             'revenue_entries' => $entries,
             'summary' => $summary,
             'machines' => $machines,
             'customers' => $customers,
+            'draft_count' => $draftCount,
             'total' => $total,
             'pagination' => [
                 'current_page' => $page,
@@ -173,7 +176,7 @@ class RevenueController
 
         // Map form status values to DB ENUM ('draft', 'approved', 'rejected')
         $statusMap = ['verified' => 'approved', 'pending' => 'draft'];
-        $rawStatus = $data['status'] ?? 'approved';
+        $rawStatus = $data['status'] ?? 'approved'; // Manual entries default to approved
         $status = $statusMap[$rawStatus] ?? $rawStatus;
 
         $cashSource = trim((string) ($data['cash_source'] ?? 'manual'));
@@ -331,11 +334,6 @@ class RevenueController
             return $response->withHeader('Location', '/revenue')->withStatus(302);
         }
 
-        if (($entry['source'] ?? '') === 'nayax') {
-            $_SESSION['flash_error'] = 'Nayax revenue entries cannot be deleted.';
-            return $response->withHeader('Location', '/revenue')->withStatus(302);
-        }
-
         $this->db->delete('revenue', 'id = ?', [$id]);
 
         $_SESSION['flash_success'] = 'Revenue entry deleted successfully.';
@@ -365,6 +363,22 @@ class RevenueController
 
         $_SESSION['flash_success'] = 'Revenue entry approved.';
         return $response->withHeader('Location', "/revenue/{$id}")->withStatus(302);
+    }
+
+    /**
+     * Bulk approve all draft revenue entries.
+     */
+    public function approveAll(Request $request, Response $response): Response
+    {
+        $authUser = $this->auth->user();
+
+        $count = $this->db->execute(
+            "UPDATE revenue SET status = 'approved', approved_by = ?, approved_at = ?, updated_at = ? WHERE status = 'draft'",
+            [$authUser['id'] ?? null, date('Y-m-d H:i:s'), date('Y-m-d H:i:s')]
+        );
+
+        $_SESSION['flash_success'] = "{$count} revenue entries approved.";
+        return $response->withHeader('Location', '/revenue')->withStatus(302);
     }
 
     /**
