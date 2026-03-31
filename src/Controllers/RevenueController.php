@@ -334,11 +334,6 @@ class RevenueController
             return $response->withHeader('Location', '/revenue')->withStatus(302);
         }
 
-        if (($entry['source'] ?? '') === 'nayax') {
-            $_SESSION['flash_error'] = 'Nayax revenue entries cannot be deleted.';
-            return $response->withHeader('Location', '/revenue')->withStatus(302);
-        }
-
         $this->db->delete('revenue', 'id = ?', [$id]);
 
         $_SESSION['flash_success'] = 'Revenue entry deleted successfully.';
