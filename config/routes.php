@@ -97,6 +97,7 @@ return function (App $app) {
         $group->post('/revenue/{id:[0-9]+}/delete', [RevenueController::class, 'delete']);
         $group->delete('/revenue/{id:[0-9]+}', [RevenueController::class, 'delete']);
         $group->post('/revenue/{id:[0-9]+}/approve', [RevenueController::class, 'approve']);
+        $group->post('/revenue/approve-all', [RevenueController::class, 'approveAll']);
         $group->get('/revenue/by-machine', [RevenueController::class, 'byMachine']);
         $group->get('/revenue/import', [RevenueController::class, 'showImport']);
         $group->post('/revenue/import', [RevenueController::class, 'import']);

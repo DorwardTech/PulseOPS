@@ -81,8 +81,8 @@
                         <div class="col-md-6">
                             <label for="status" class="form-label">Status</label>
                             <select class="form-select" id="status" name="status">
-                                <option value="draft" {{ (revenue.status|default(old.status)|default('draft')) == 'draft' ? 'selected' }}>Draft</option>
-                                <option value="approved" {{ (revenue.status|default(old.status)) == 'approved' ? 'selected' }}>Approved</option>
+                                <option value="approved" {{ (revenue.status|default(old.status)|default('approved')) == 'approved' ? 'selected' }}>Approved</option>
+                                <option value="draft" {{ (revenue.status|default(old.status)) == 'draft' ? 'selected' }}>Draft</option>
                             </select>
                         </div>
 
