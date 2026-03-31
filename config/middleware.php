@@ -57,6 +57,7 @@ return function (App $app) {
         } else {
             $response->getBody()->write('<h1>Server Error</h1><p>Something went wrong.</p>');
         }
-        return $response->withStatus((int) $code ?: 500)->withHeader('Content-Type', 'text/html');
+        $httpCode = is_int($code) && $code >= 100 && $code < 600 ? $code : 500;
+        return $response->withStatus($httpCode)->withHeader('Content-Type', 'text/html');
     });
 };

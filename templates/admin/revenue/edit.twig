@@ -84,8 +84,9 @@
                         <div class="col-md-6">
                             <label for="status" class="form-label">Status</label>
                             <select class="form-select" id="status" name="status">
-                                <option value="pending" {{ entry.status == 'pending' ? 'selected' }}>Pending</option>
-                                <option value="verified" {{ entry.status == 'verified' ? 'selected' }}>Verified</option>
+                                <option value="draft" {{ entry.status == 'draft' ? 'selected' }}>Draft</option>
+                                <option value="approved" {{ entry.status == 'approved' ? 'selected' }}>Approved</option>
+                                <option value="rejected" {{ entry.status == 'rejected' ? 'selected' }}>Rejected</option>
                             </select>
                         </div>
 
