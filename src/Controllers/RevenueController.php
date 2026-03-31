@@ -155,7 +155,7 @@ class RevenueController
             "SELECT m.id, m.name, m.machine_code, m.status, c.name AS customer_name
              FROM machines m
              LEFT JOIN customers c ON m.customer_id = c.id
-             ORDER BY m.name"
+             ORDER BY m.machine_code"
         );
 
         return $this->twig->render($response, 'admin/revenue/create.twig', $this->viewData([
@@ -171,6 +171,21 @@ class RevenueController
         $data = $request->getParsedBody();
         $authUser = $this->auth->user();
 
+        // Map form status values to DB ENUM ('draft', 'approved', 'rejected')
+        $statusMap = ['verified' => 'approved', 'pending' => 'draft'];
+        $rawStatus = $data['status'] ?? 'approved';
+        $status = $statusMap[$rawStatus] ?? $rawStatus;
+
+        $cashSource = trim((string) ($data['cash_source'] ?? 'manual'));
+        if (!in_array($cashSource, ['manual', 'nayax'])) {
+            $cashSource = 'manual';
+        }
+
+        $source = trim((string) ($data['source'] ?? 'manual'));
+        if (!in_array($source, ['manual', 'nayax', 'import'])) {
+            $source = 'manual';
+        }
+
         $revenueData = [
             'machine_id' => (int) ($data['machine_id'] ?? 0),
             'collection_date' => $data['collection_date'] ?? date('Y-m-d'),
@@ -179,10 +194,10 @@ class RevenueController
             'prepaid_amount' => (float) ($data['prepaid_amount'] ?? 0),
             'card_transactions' => (int) ($data['card_transactions'] ?? 0),
             'prepaid_transactions' => (int) ($data['prepaid_transactions'] ?? 0),
-            'cash_source' => trim((string) ($data['cash_source'] ?? '')),
-            'source' => trim((string) ($data['source'] ?? 'manual')),
+            'cash_source' => $cashSource,
+            'source' => $source,
             'notes' => trim((string) ($data['notes'] ?? '')),
-            'status' => $data['status'] ?? 'pending',
+            'status' => $status,
             'collected_by' => $authUser['id'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
@@ -253,7 +268,7 @@ class RevenueController
              FROM machines m
              LEFT JOIN customers c ON m.customer_id = c.id
              WHERE m.status = 'active' OR m.id = ?
-             ORDER BY m.name",
+             ORDER BY m.machine_code",
             [$entry['machine_id']]
         );
 
