@@ -172,6 +172,59 @@ class CommissionsController
     }
 
     /**
+     * Bulk generate commissions for ALL active customers for a period.
+     */
+    public function processGenerateAll(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+        $periodStart = $data['period_start'] ?? '';
+        $periodEnd = $data['period_end'] ?? '';
+
+        if ($periodStart === '' || $periodEnd === '') {
+            $_SESSION['flash_error'] = 'Period dates are required.';
+            return $response->withHeader('Location', '/commissions/generate')->withStatus(302);
+        }
+
+        $customers = $this->db->fetchAll(
+            "SELECT DISTINCT c.id, c.name
+             FROM customers c
+             JOIN machines m ON c.id = m.customer_id
+             WHERE c.is_active = 1
+             ORDER BY c.name"
+        );
+
+        $authUser = $this->auth->user();
+        $generated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($customers as $customer) {
+            try {
+                $this->commissionService->generateForCustomer(
+                    (int) $customer['id'],
+                    $periodStart,
+                    $periodEnd,
+                    $authUser['id'] ?? null
+                );
+                $generated++;
+            } catch (\RuntimeException $e) {
+                if (str_contains($e->getMessage(), 'already exists')) {
+                    $skipped++;
+                } else {
+                    $errors[] = "{$customer['name']}: {$e->getMessage()}";
+                }
+            }
+        }
+
+        $msg = "{$generated} commissions generated, {$skipped} skipped (already exist).";
+        if (!empty($errors)) {
+            $msg .= ' Errors: ' . implode('; ', $errors);
+        }
+        $_SESSION['flash_success'] = $msg;
+        return $response->withHeader('Location', '/commissions')->withStatus(302);
+    }
+
+    /**
      * Show commission detail with full breakdown and line items.
      */
     public function show(Request $request, Response $response, array $args): Response
@@ -241,6 +294,96 @@ class CommissionsController
             'line_items' => $lineItems,
             'machine_breakdown' => $machineBreakdown,
         ]));
+    }
+
+    /**
+     * Export commission as PDF.
+     */
+    public function exportPdf(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+
+        $commission = $this->db->fetch(
+            "SELECT cp.*, c.name AS customer_name
+             FROM commission_payments cp
+             LEFT JOIN customers c ON cp.customer_id = c.id
+             WHERE cp.id = ?",
+            [$id]
+        );
+
+        if (!$commission) {
+            $_SESSION['flash_error'] = 'Commission not found.';
+            return $response->withHeader('Location', '/commissions')->withStatus(302);
+        }
+
+        $lineItems = $this->db->fetchAll(
+            "SELECT cli.* FROM commission_line_items cli WHERE cli.commission_id = ? ORDER BY cli.type, cli.created_at",
+            [$id]
+        );
+
+        // Per-machine breakdown
+        $machineBreakdown = $this->db->fetchAll(
+            "SELECT m.id, m.name, m.machine_code, m.commission_rate,
+                    COALESCE(SUM(r.cash_amount), 0) AS cash_total,
+                    COALESCE(SUM(r.card_amount), 0) AS card_total,
+                    COALESCE(SUM(r.prepaid_amount), 0) AS prepaid_total,
+                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS gross_revenue,
+                    SUM(r.card_transactions) AS card_transactions
+             FROM machines m
+             JOIN revenue r ON m.id = r.machine_id
+             WHERE m.customer_id = ?
+               AND r.status = 'approved'
+               AND r.collection_date BETWEEN ? AND ?
+             GROUP BY m.id, m.name, m.machine_code, m.commission_rate
+             ORDER BY gross_revenue DESC",
+            [$commission['customer_id'], $commission['period_start'], $commission['period_end']]
+        );
+
+        $defaultRate = (float) ($commission['commission_rate'] ?? 0);
+        $processingFeeRate = (float) ($commission['processing_fee_rate'] ?? 0);
+        foreach ($machineBreakdown as &$machine) {
+            $rate = $machine['commission_rate'] !== null ? (float) $machine['commission_rate'] : $defaultRate;
+            $gross = (float) $machine['gross_revenue'];
+            $fees = (int) $machine['card_transactions'] * $processingFeeRate;
+            $net = $gross - $fees;
+            $machine['effective_rate'] = $rate;
+            $machine['processing_fees'] = round($fees, 2);
+            $machine['net_revenue'] = round($net, 2);
+            $machine['commission'] = round($net * $rate / 100, 2);
+        }
+        unset($machine);
+
+        $companyName = $this->settings->get('company_name', '') ?: ($_ENV['APP_NAME'] ?? 'PulseOPS');
+        $periodFormatted = date('d/m/Y', strtotime($commission['period_start']))
+            . ' - ' . date('d/m/Y', strtotime($commission['period_end']));
+
+        // Render HTML via Twig
+        $html = $this->twig->fetch('pdf/commission.twig', [
+            'commission' => $commission,
+            'line_items' => $lineItems,
+            'machine_breakdown' => $machineBreakdown,
+            'company_name' => $companyName,
+            'period_formatted' => $periodFormatted,
+            'generated_at' => date('d/m/Y g:i A'),
+        ]);
+
+        // Generate PDF
+        $dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => false]);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = 'commission_' . ($commission['customer_name'] ?? 'unknown') . '_' . $commission['period_start'] . '.pdf';
+        $filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', $filename);
+
+        $pdfContent = $dompdf->output();
+        $response->getBody()->write($pdfContent);
+
+        return $response
+            ->withHeader('Content-Type', 'application/pdf')
+            ->withHeader('Content-Disposition', "attachment; filename=\"{$filename}\"")
+            ->withHeader('Content-Length', (string) strlen($pdfContent))
+            ->withStatus(200);
     }
 
     /**

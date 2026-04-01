@@ -90,8 +90,8 @@
                         <span>{{ format_currency(commission.net_revenue) }}</span>
                     </li>
                     <li>
-                        <span>Commission (per-machine rates)</span>
-                        <span>{{ format_currency(commission.commission_calculated - commission.carry_forward_in + commission.parts_deduction + commission.labour_deduction) }}</span>
+                        <span>Commission (per-machine rates — see breakdown below)</span>
+                        <span>{{ format_currency(commission.commission_amount) }}</span>
                     </li>
                     {% if commission.adjustments_total != 0 %}
                     <li>
@@ -191,6 +191,10 @@
                             <i class="bi bi-arrow-clockwise me-1"></i> Recalculate
                         </button>
                     </form>
+
+                    <a href="/commissions/{{ commission.id }}/pdf" class="btn btn-outline-info">
+                        <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF
+                    </a>
                 </div>
             </div>
         </div>

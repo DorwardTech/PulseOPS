@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #333; margin: 30px; }
+    h1 { font-size: 22px; margin: 0 0 5px; color: #0d6efd; }
+    h2 { font-size: 14px; margin: 20px 0 8px; border-bottom: 2px solid #333; padding-bottom: 4px; }
+    .header { display: flex; margin-bottom: 20px; }
+    .header-left { width: 60%; }
+    .header-right { width: 40%; text-align: right; }
+    .company-name { font-size: 10px; color: #666; margin-bottom: 10px; }
+    .customer-name { font-size: 16px; font-weight: bold; margin: 5px 0; }
+    .period { font-size: 12px; color: #555; }
+    .amount-large { font-size: 28px; font-weight: bold; color: #0d6efd; }
+    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 3px; font-size: 10px; font-weight: bold; color: #fff; }
+    .status-draft { background: #6c757d; }
+    .status-approved { background: #0d6efd; }
+    .status-paid { background: #198754; }
+    .status-void { background: #dc3545; }
+
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 15px; }
+    th { text-align: left; padding: 6px 8px; background: #f8f9fa; border-bottom: 2px solid #dee2e6; font-size: 10px; text-transform: uppercase; color: #555; }
+    td { padding: 5px 8px; border-bottom: 1px solid #eee; }
+    .text-end { text-align: right; }
+    .text-center { text-align: center; }
+    .fw-bold { font-weight: bold; }
+    .text-danger { color: #dc3545; }
+    .text-success { color: #198754; }
+
+    .summary-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+    .summary-row.total { font-weight: bold; font-size: 13px; border-top: 2px solid #333; border-bottom: none; padding-top: 8px; }
+    .summary-row.deduction { color: #dc3545; }
+
+    .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #ccc; font-size: 9px; color: #999; text-align: center; }
+
+    .rate-badge { background: #0dcaf0; color: #000; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<table style="border:none;margin-bottom:20px">
+<tr>
+    <td style="border:none;width:60%;vertical-align:top;padding:0">
+        <div class="company-name">{{ company_name }}</div>
+        <h1>Commission Statement</h1>
+        <div class="customer-name">{{ commission.customer_name }}</div>
+        <div class="period">{{ commission.period_label|default(period_formatted) }}</div>
+        <span class="status-badge status-{{ commission.status }}">{{ commission.status|upper }}</span>
+    </td>
+    <td style="border:none;width:40%;text-align:right;vertical-align:top;padding:0">
+        <div style="color:#666;font-size:10px">Commission Payable</div>
+        <div class="amount-large">${{ commission.commission_amount|number_format(2) }}</div>
+        <div style="font-size:10px;color:#666;margin-top:5px">Ref: COMM-{{ commission.id }}</div>
+    </td>
+</tr>
+</table>
+
+<!-- Summary -->
+<h2>Commission Summary</h2>
+<table>
+    <tr><td>Cash Revenue</td><td class="text-end">${{ commission.total_cash|number_format(2) }}</td></tr>
+    <tr><td>Card Revenue</td><td class="text-end">${{ commission.total_card|number_format(2) }}</td></tr>
+    <tr style="font-weight:bold;border-top:2px solid #333"><td>Gross Revenue (Cash + Card)</td><td class="text-end">${{ commission.gross_revenue|number_format(2) }}</td></tr>
+    <tr class="text-danger"><td>Transaction Fees ({{ commission.total_card_transactions|default(0) }} txns &times; ${{ commission.processing_fee_rate|number_format(2) }})</td><td class="text-end">-${{ commission.processing_fees|number_format(2) }}</td></tr>
+    {% if commission.parts_deduction > 0 %}
+    <tr class="text-danger"><td>Parts Deduction</td><td class="text-end">-${{ commission.parts_deduction|number_format(2) }}</td></tr>
+    {% endif %}
+    {% if commission.labour_deduction > 0 %}
+    <tr class="text-danger"><td>Labour Deduction</td><td class="text-end">-${{ commission.labour_deduction|number_format(2) }}</td></tr>
+    {% endif %}
+    <tr style="font-weight:bold;border-top:2px solid #333"><td>Net Revenue</td><td class="text-end">${{ commission.net_revenue|number_format(2) }}</td></tr>
+    <tr><td>Commission (per-machine rates)</td><td class="text-end">${{ commission.commission_amount|number_format(2) }}</td></tr>
+    {% if commission.adjustments_total != 0 %}
+    <tr><td>Adjustments</td><td class="text-end">{{ commission.adjustments_total >= 0 ? '+' : '' }}${{ commission.adjustments_total|number_format(2) }}</td></tr>
+    {% endif %}
+    {% if commission.carry_forward_in != 0 %}
+    <tr><td>Carry Forward In</td><td class="text-end">${{ commission.carry_forward_in|number_format(2) }}</td></tr>
+    {% endif %}
+    <tr style="font-weight:bold;font-size:14px;border-top:2px solid #333"><td>Commission Payable</td><td class="text-end">${{ commission.commission_amount|number_format(2) }}</td></tr>
+    {% if commission.carry_forward_out != 0 %}
+    <tr><td>Carry Forward Out</td><td class="text-end">${{ commission.carry_forward_out|number_format(2) }}</td></tr>
+    {% endif %}
+</table>
+
+{% if commission.total_prepaid > 0 %}
+<p style="color:#666;font-size:10px"><strong>Prepaid Usage:</strong> ${{ commission.total_prepaid|number_format(2) }} (tracked separately, managed by operator)</p>
+{% endif %}
+
+<!-- Revenue by Machine -->
+<h2>Revenue by Machine</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Machine</th>
+            <th class="text-end">Cash</th>
+            <th class="text-end">Card</th>
+            <th class="text-end">Gross</th>
+            <th class="text-end">Fees</th>
+            <th class="text-end">Net</th>
+            <th class="text-center">Rate</th>
+            <th class="text-end">Commission</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for m in machine_breakdown %}
+        <tr>
+            <td><strong>{{ m.machine_code }}</strong><br><span style="color:#666;font-size:9px">{{ m.name }}</span></td>
+            <td class="text-end">${{ m.cash_total|number_format(2) }}</td>
+            <td class="text-end">${{ m.card_total|number_format(2) }}</td>
+            <td class="text-end">${{ m.gross_revenue|number_format(2) }}</td>
+            <td class="text-end text-danger">-${{ m.processing_fees|number_format(2) }}</td>
+            <td class="text-end">${{ m.net_revenue|number_format(2) }}</td>
+            <td class="text-center"><span class="rate-badge">{{ m.effective_rate }}%</span></td>
+            <td class="text-end fw-bold">${{ m.commission|number_format(2) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr style="font-weight:bold;border-top:2px solid #333">
+            <td>Total</td>
+            <td class="text-end">${{ commission.total_cash|number_format(2) }}</td>
+            <td class="text-end">${{ commission.total_card|number_format(2) }}</td>
+            <td class="text-end">${{ commission.gross_revenue|number_format(2) }}</td>
+            <td class="text-end text-danger">-${{ commission.processing_fees|number_format(2) }}</td>
+            <td class="text-end">${{ commission.net_revenue|number_format(2) }}</td>
+            <td></td>
+            <td class="text-end">${{ commission.commission_amount|number_format(2) }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+<!-- Line Items -->
+{% if line_items|length > 0 %}
+<h2>Adjustments</h2>
+<table>
+    <thead>
+        <tr><th>Type</th><th>Description</th><th class="text-end">Amount</th></tr>
+    </thead>
+    <tbody>
+        {% for item in line_items %}
+        <tr>
+            <td>{{ item.type|capitalize }}</td>
+            <td>{{ item.description }}</td>
+            <td class="text-end">${{ item.amount|number_format(2) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<div class="footer">
+    Generated by PulseOPS on {{ generated_at }} | {{ company_name }}
+</div>
+
+</body>
+</html>

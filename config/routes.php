@@ -106,7 +106,9 @@ return function (App $app) {
         $group->get('/commissions', [CommissionsController::class, 'index']);
         $group->get('/commissions/generate', [CommissionsController::class, 'showGenerate']);
         $group->post('/commissions/generate', [CommissionsController::class, 'processGenerate']);
+        $group->post('/commissions/generate-all', [CommissionsController::class, 'processGenerateAll']);
         $group->get('/commissions/{id:[0-9]+}', [CommissionsController::class, 'show']);
+        $group->get('/commissions/{id:[0-9]+}/pdf', [CommissionsController::class, 'exportPdf']);
         $group->post('/commissions/{id:[0-9]+}/approve', [CommissionsController::class, 'approve']);
         $group->post('/commissions/{id:[0-9]+}/pay', [CommissionsController::class, 'markPaid']);
         $group->post('/commissions/{id:[0-9]+}/void', [CommissionsController::class, 'void']);
@@ -199,6 +201,7 @@ return function (App $app) {
         $group->get('/revenue', [PortalController::class, 'revenue']);
         $group->get('/commissions', [PortalController::class, 'commissions']);
         $group->get('/commissions/{id:[0-9]+}', [PortalController::class, 'commissionDetail']);
+        $group->get('/commissions/{id:[0-9]+}/pdf', [PortalController::class, 'commissionPdf']);
         $group->get('/jobs', [PortalController::class, 'jobs']);
         $group->get('/jobs/{id:[0-9]+}', [PortalController::class, 'jobDetail']);
         $group->post('/jobs/{id:[0-9]+}/notes', [PortalController::class, 'addJobNote']);
