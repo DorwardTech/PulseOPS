@@ -421,6 +421,99 @@ class CommissionsController
     }
 
     /**
+     * Export approved/paid commissions as Xero-compatible CSV (bills).
+     */
+    public function exportXero(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $status = $params['status'] ?? 'approved';
+        $periodStart = $params['period_start'] ?? null;
+        $periodEnd = $params['period_end'] ?? null;
+
+        $where = ["cp.status IN ('approved', 'paid')"];
+        $bindings = [];
+
+        if ($periodStart) {
+            $where[] = 'cp.period_start >= ?';
+            $bindings[] = $periodStart;
+        }
+        if ($periodEnd) {
+            $where[] = 'cp.period_end <= ?';
+            $bindings[] = $periodEnd;
+        }
+
+        $whereClause = implode(' AND ', $where);
+
+        $commissions = $this->db->fetchAll(
+            "SELECT cp.*, c.name AS customer_name
+             FROM commission_payments cp
+             LEFT JOIN customers c ON cp.customer_id = c.id
+             WHERE {$whereClause}
+             ORDER BY cp.period_end DESC",
+            $bindings
+        );
+
+        if (empty($commissions)) {
+            $_SESSION['flash_error'] = 'No approved/paid commissions found to export.';
+            return $response->withHeader('Location', '/commissions')->withStatus(302);
+        }
+
+        $accountCode = $this->settings->get('xero_account_code', '');
+        $taxType = $this->settings->get('xero_tax_type', 'BAS Excluded');
+        $dueDays = (int) ($this->settings->get('xero_due_days', 14) ?: 14);
+
+        $output = fopen('php://temp', 'r+');
+
+        // Xero bill import headers
+        fputcsv($output, [
+            'ContactName',
+            'InvoiceNumber',
+            'InvoiceDate',
+            'DueDate',
+            'Description',
+            'Quantity',
+            'UnitAmount',
+            'AccountCode',
+            'TaxType',
+            'Currency',
+        ]);
+
+        foreach ($commissions as $cp) {
+            $invoiceDate = $cp['period_end'];
+            $dueDate = date('d/m/Y', strtotime($invoiceDate . " +{$dueDays} days"));
+            $invoiceDateFormatted = date('d/m/Y', strtotime($invoiceDate));
+            $periodLabel = $cp['period_label']
+                ?? date('F Y', strtotime($cp['period_start']));
+            $invoiceNumber = 'COMM-' . $cp['id'];
+
+            fputcsv($output, [
+                $cp['customer_name'] ?? 'Unknown',
+                $invoiceNumber,
+                $invoiceDateFormatted,
+                $dueDate,
+                "Commission - {$periodLabel}",
+                1,
+                number_format((float) $cp['commission_amount'], 2, '.', ''),
+                $accountCode,
+                $taxType,
+                'AUD',
+            ]);
+        }
+
+        rewind($output);
+        $csv = stream_get_contents($output);
+        fclose($output);
+
+        $filename = 'xero_commissions_' . date('Y-m-d') . '.csv';
+        $response->getBody()->write($csv);
+
+        return $response
+            ->withHeader('Content-Type', 'text/csv; charset=utf-8')
+            ->withHeader('Content-Disposition', "attachment; filename=\"{$filename}\"")
+            ->withStatus(200);
+    }
+
+    /**
      * Internal helper to recalculate commission after line item changes.
      */
     private function recalculateNetAmount(int $commissionId): void

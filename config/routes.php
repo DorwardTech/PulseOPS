@@ -114,6 +114,7 @@ return function (App $app) {
         $group->post('/commissions/{id:[0-9]+}/line-items/{itemId:[0-9]+}/delete', [CommissionsController::class, 'deleteLineItem']);
         $group->delete('/commissions/{id:[0-9]+}/line-items/{itemId:[0-9]+}', [CommissionsController::class, 'deleteLineItem']);
         $group->post('/commissions/{id:[0-9]+}/recalculate', [CommissionsController::class, 'recalculate']);
+        $group->get('/commissions/export-xero', [CommissionsController::class, 'exportXero']);
 
         // Nayax
         $group->get('/nayax', [NayaxController::class, 'index']);

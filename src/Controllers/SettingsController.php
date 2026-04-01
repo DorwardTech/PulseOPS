@@ -132,6 +132,16 @@ class SettingsController
             }
         }
 
+        // Xero settings
+        $xeroFields = ['xero_account_code', 'xero_tax_type', 'xero_due_days'];
+        foreach ($xeroFields as $field) {
+            if (isset($data[$field])) {
+                $this->settings->set($field, trim($data[$field]));
+            }
+        }
+
+        $this->settings->clearCache();
+
         $_SESSION['flash_success'] = 'Commission settings updated successfully.';
         return $response->withHeader('Location', '/settings?tab=commission')->withStatus(302);
     }
