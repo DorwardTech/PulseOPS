@@ -195,6 +195,13 @@
                     <a href="/commissions/{{ commission.id }}/pdf" class="btn btn-outline-info">
                         <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF
                     </a>
+
+                    <form method="POST" action="/commissions/{{ commission.id }}/delete" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Permanently delete this commission? This cannot be undone.')">
+                            <i class="bi bi-trash me-1"></i> Delete
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

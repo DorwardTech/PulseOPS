@@ -112,6 +112,7 @@ return function (App $app) {
         $group->post('/commissions/{id:[0-9]+}/approve', [CommissionsController::class, 'approve']);
         $group->post('/commissions/{id:[0-9]+}/pay', [CommissionsController::class, 'markPaid']);
         $group->post('/commissions/{id:[0-9]+}/void', [CommissionsController::class, 'void']);
+        $group->post('/commissions/{id:[0-9]+}/delete', [CommissionsController::class, 'delete']);
         $group->post('/commissions/{id:[0-9]+}/line-items', [CommissionsController::class, 'addLineItem']);
         $group->post('/commissions/{id:[0-9]+}/line-items/{itemId:[0-9]+}/delete', [CommissionsController::class, 'deleteLineItem']);
         $group->delete('/commissions/{id:[0-9]+}/line-items/{itemId:[0-9]+}', [CommissionsController::class, 'deleteLineItem']);
