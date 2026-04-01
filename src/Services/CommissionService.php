@@ -139,8 +139,11 @@ class CommissionService
             [$customerId, $periodStart, $periodEnd]
         );
 
-        if ($existing && !in_array($existing['status'], ['draft', 'void'], true)) {
-            throw new \RuntimeException("Commission already exists with status '{$existing['status']}'");
+        if ($existing) {
+            $existingStatus = (string) $existing['status'];
+            if ($existingStatus !== 'draft' && $existingStatus !== 'void') {
+                throw new \RuntimeException("Commission already exists with status '{$existingStatus}'");
+            }
         }
 
         $commissionData = [
