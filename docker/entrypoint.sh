@@ -61,6 +61,21 @@ if [ -n "$DB_HOST" ]; then
         echo "Database initialization complete."
     else
         echo "Database already has $TABLES tables, skipping init."
+        # Run pending migrations
+        for migration in /var/www/html/database/migrations/*.sql; do
+            if [ -f "$migration" ]; then
+                BASENAME=$(basename "$migration")
+                echo "Running migration: $BASENAME"
+                php -r "
+                    \$h='${DB_HOST}'; \$u='${DB_USERNAME}'; \$p='${DB_PASSWORD}'; \$d='${DB_DATABASE}';
+                    \$pdo = new PDO(\"mysql:host=\$h;dbname=\$d\", \$u, \$p);
+                    \$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                    \$sql = file_get_contents('$migration');
+                    try { \$pdo->exec(\$sql); echo \"  Done.\n\"; }
+                    catch (Exception \$e) { echo \"  Skipped (\" . \$e->getMessage() . \")\n\"; }
+                " 2>/dev/null || true
+            fi
+        done
     fi
 fi
 

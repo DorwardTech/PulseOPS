@@ -310,6 +310,8 @@ CREATE TABLE IF NOT EXISTS `job_notes` (
     `user_id` INT UNSIGNED DEFAULT NULL,
     `portal_user_id` INT UNSIGNED DEFAULT NULL,
     `note` TEXT NOT NULL,
+    `time_minutes` INT UNSIGNED DEFAULT 0,
+    `is_billable` BOOLEAN DEFAULT FALSE,
     `is_internal` BOOLEAN DEFAULT TRUE,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
