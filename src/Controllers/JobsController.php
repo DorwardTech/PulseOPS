@@ -185,7 +185,7 @@ class JobsController
             'parts_cost' => 0,
             'total_cost' => $labourCost,
             'is_customer_visible' => !empty($data['is_customer_visible']) ? 1 : 0,
-            'created_by' => $this->auth->user()['id'] ?? null,
+            'user_id' => $this->auth->user()['id'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
@@ -405,7 +405,7 @@ class JobsController
         $this->db->insert('job_notes', [
             'job_id' => $jobId,
             'note' => $note,
-            'created_by' => $this->auth->user()['id'] ?? null,
+            'user_id' => $this->auth->user()['id'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
