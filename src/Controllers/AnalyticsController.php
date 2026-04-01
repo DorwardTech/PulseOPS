@@ -466,9 +466,9 @@ class AnalyticsController
 
         // Build CSV content
         $output = fopen('php://temp', 'r+');
-        fputcsv($output, $headers);
+        fputcsv($output, $headers, ',', '"', '\\');
         foreach ($rows as $row) {
-            fputcsv($output, array_values($row));
+            fputcsv($output, array_values($row), ',', '"', '\\');
         }
         rewind($output);
         $csv = stream_get_contents($output);

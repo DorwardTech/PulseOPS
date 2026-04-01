@@ -476,9 +476,14 @@ class CommissionsController
             'AccountCode',
             'TaxType',
             'Currency',
-        ]);
+        ], ',', '"', '\\');
 
         foreach ($commissions as $cp) {
+            // Skip $0 commissions
+            if ((float) $cp['commission_amount'] <= 0) {
+                continue;
+            }
+
             $invoiceDate = $cp['period_end'];
             $dueDate = date('d/m/Y', strtotime($invoiceDate . " +{$dueDays} days"));
             $invoiceDateFormatted = date('d/m/Y', strtotime($invoiceDate));
@@ -497,7 +502,7 @@ class CommissionsController
                 $accountCode,
                 $taxType,
                 'AUD',
-            ]);
+            ], ',', '"', '\\');
         }
 
         rewind($output);
@@ -508,8 +513,10 @@ class CommissionsController
         $response->getBody()->write($csv);
 
         return $response
-            ->withHeader('Content-Type', 'text/csv; charset=utf-8')
+            ->withHeader('Content-Type', 'application/octet-stream')
             ->withHeader('Content-Disposition', "attachment; filename=\"{$filename}\"")
+            ->withHeader('Content-Transfer-Encoding', 'binary')
+            ->withHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
             ->withStatus(200);
     }
 
