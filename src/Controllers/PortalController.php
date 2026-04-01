@@ -546,6 +546,99 @@ class PortalController
     }
 
     /**
+     * Export portal commission as PDF.
+     */
+    public function commissionPdf(Request $request, Response $response, array $args = []): Response
+    {
+        $portalUser = $this->auth->portalUser();
+        $customerId = $portalUser['customer_id'];
+        $commissionId = (int) $args['id'];
+
+        $commission = $this->db->fetch(
+            "SELECT cp.*, c.name AS customer_name
+             FROM commission_payments cp
+             LEFT JOIN customers c ON cp.customer_id = c.id
+             WHERE cp.id = ? AND cp.customer_id = ?",
+            [$commissionId, $customerId]
+        );
+
+        if (!$commission) {
+            $_SESSION['flash_error'] = 'Commission not found.';
+            return $response->withHeader('Location', '/portal/commissions')->withStatus(302);
+        }
+
+        $lineItems = $this->db->fetchAll(
+            "SELECT cli.* FROM commission_line_items cli WHERE cli.commission_id = ? ORDER BY cli.type, cli.created_at",
+            [$commissionId]
+        );
+
+        $machineBreakdown = $this->db->fetchAll(
+            "SELECT m.id, m.name, m.machine_code, m.commission_rate,
+                    COALESCE(SUM(r.cash_amount), 0) AS cash_total,
+                    COALESCE(SUM(r.card_amount), 0) AS card_total,
+                    COALESCE(SUM(r.prepaid_amount), 0) AS prepaid_total,
+                    COALESCE(SUM(r.cash_amount + r.card_amount), 0) AS gross_revenue,
+                    SUM(r.card_transactions) AS card_transactions
+             FROM machines m
+             JOIN revenue r ON m.id = r.machine_id
+             WHERE m.customer_id = ?
+               AND r.status = 'approved'
+               AND r.collection_date BETWEEN ? AND ?
+             GROUP BY m.id, m.name, m.machine_code, m.commission_rate
+             ORDER BY gross_revenue DESC",
+            [$customerId, $commission['period_start'], $commission['period_end']]
+        );
+
+        $defaultRate = (float) ($commission['commission_rate'] ?? 0);
+        $processingFeeRate = (float) ($commission['processing_fee_rate'] ?? 0);
+        foreach ($machineBreakdown as &$machine) {
+            $rate = $machine['commission_rate'] !== null ? (float) $machine['commission_rate'] : $defaultRate;
+            $gross = (float) $machine['gross_revenue'];
+            $fees = (int) $machine['card_transactions'] * $processingFeeRate;
+            $net = $gross - $fees;
+            $machine['effective_rate'] = $rate;
+            $machine['processing_fees'] = round($fees, 2);
+            $machine['net_revenue'] = round($net, 2);
+            $machine['commission'] = round($net * $rate / 100, 2);
+        }
+        unset($machine);
+
+        // Use a SettingsService if available, otherwise fallback
+        $companyName = $_ENV['APP_NAME'] ?? 'NT Amusements';
+        $periodFormatted = date('d/m/Y', strtotime($commission['period_start']))
+            . ' - ' . date('d/m/Y', strtotime($commission['period_end']));
+
+        $twig = new \Twig\Environment(new \Twig\Loader\FilesystemLoader(__DIR__ . '/../../templates'));
+        $twig->addFunction(new \Twig\TwigFunction('format_currency', function ($a) { return '$' . number_format((float)$a, 2); }));
+
+        $html = $twig->render('pdf/commission.twig', [
+            'commission' => $commission,
+            'line_items' => $lineItems,
+            'machine_breakdown' => $machineBreakdown,
+            'company_name' => $companyName,
+            'period_formatted' => $periodFormatted,
+            'generated_at' => date('d/m/Y g:i A'),
+        ]);
+
+        $dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => false]);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = 'commission_' . ($commission['customer_name'] ?? 'statement') . '_' . $commission['period_start'] . '.pdf';
+        $filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', $filename);
+
+        $pdfContent = $dompdf->output();
+        $response->getBody()->write($pdfContent);
+
+        return $response
+            ->withHeader('Content-Type', 'application/pdf')
+            ->withHeader('Content-Disposition', "attachment; filename=\"{$filename}\"")
+            ->withHeader('Content-Length', (string) strlen($pdfContent))
+            ->withStatus(200);
+    }
+
+    /**
      * Jobs on customer's machines (where is_customer_visible=1).
      */
     public function jobs(Request $request, Response $response, array $args = []): Response
