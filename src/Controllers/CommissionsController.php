@@ -213,10 +213,12 @@ class CommissionsController
                 } else {
                     $errors[] = "{$customer['name']}: {$e->getMessage()}";
                 }
+            } catch (\Exception $e) {
+                $errors[] = "{$customer['name']}: {$e->getMessage()}";
             }
         }
 
-        $msg = "{$generated} commissions generated, {$skipped} skipped (already exist).";
+        $msg = "{$generated} commissions generated, {$skipped} skipped (already approved/paid).";
         if (!empty($errors)) {
             $msg .= ' Errors: ' . implode('; ', $errors);
         }
