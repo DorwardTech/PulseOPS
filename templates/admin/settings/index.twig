@@ -117,6 +117,23 @@
                             <label for="labour_increment_minutes" class="form-label">Labour Increment (minutes)</label>
                             <input type="number" class="form-control" id="labour_increment_minutes" name="labour_increment_minutes" min="1" value="{{ settings.labour_increment_minutes }}">
                         </div>
+                        <div class="col-12"><hr></div>
+                        <div class="col-12"><h6>Xero Integration</h6></div>
+                        <div class="col-md-6">
+                            <label for="xero_account_code" class="form-label">Xero Account Code</label>
+                            <input type="text" class="form-control" id="xero_account_code" name="xero_account_code" value="{{ settings.xero_account_code }}" placeholder="e.g. 480">
+                            <div class="form-text">Expense account code for commission bills in Xero.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="xero_tax_type" class="form-label">Xero Tax Type</label>
+                            <input type="text" class="form-control" id="xero_tax_type" name="xero_tax_type" value="{{ settings.xero_tax_type|default('BAS Excluded') }}" placeholder="e.g. BAS Excluded">
+                            <div class="form-text">Tax code for Xero bill line items.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="xero_due_days" class="form-label">Payment Terms (days)</label>
+                            <input type="number" class="form-control" id="xero_due_days" name="xero_due_days" value="{{ settings.xero_due_days|default(14) }}" min="0">
+                            <div class="form-text">Days after bill date until due.</div>
+                        </div>
                     </div>
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary">
