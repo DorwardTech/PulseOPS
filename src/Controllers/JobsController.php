@@ -402,12 +402,30 @@ class JobsController
             return $response->withHeader('Location', '/jobs/' . $jobId)->withStatus(302);
         }
 
+        $timeMinutes = max(0, (int) ($data['time_minutes'] ?? 0));
+        $isBillable = !empty($data['is_billable']);
+        $isInternal = empty($data['is_customer_visible']); // internal = NOT visible to customer
+
         $this->db->insert('job_notes', [
             'job_id' => $jobId,
             'note' => $note,
             'user_id' => $this->auth->user()['id'] ?? null,
+            'time_minutes' => $timeMinutes,
+            'is_billable' => $isBillable ? 1 : 0,
+            'is_internal' => $isInternal ? 1 : 0,
             'created_at' => date('Y-m-d H:i:s'),
         ]);
+
+        // Update total labour on the job if time was logged
+        if ($timeMinutes > 0) {
+            $this->db->execute(
+                "UPDATE maintenance_jobs SET
+                    labour_minutes = COALESCE(labour_minutes, 0) + ?,
+                    updated_at = ?
+                 WHERE id = ?",
+                [$timeMinutes, date('Y-m-d H:i:s'), $jobId]
+            );
+        }
 
         $_SESSION['flash_success'] = 'Note added successfully.';
         return $response->withHeader('Location', '/jobs/' . $jobId)->withStatus(302);
