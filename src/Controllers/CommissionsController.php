@@ -469,6 +469,36 @@ class CommissionsController
     }
 
     /**
+     * Permanently delete a commission and its line items.
+     */
+    public function delete(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+
+        $commission = $this->db->fetch(
+            "SELECT id, customer_id, carry_forward_in FROM commission_payments WHERE id = ?",
+            [$id]
+        );
+        if (!$commission) {
+            $_SESSION['flash_error'] = 'Commission not found.';
+            return $response->withHeader('Location', '/commissions')->withStatus(302);
+        }
+
+        // Revert carry forward
+        $this->db->update('customers', [
+            'carry_forward' => $commission['carry_forward_in'],
+            'updated_at' => date('Y-m-d H:i:s'),
+        ], 'id = ?', [$commission['customer_id']]);
+
+        // Delete line items then commission
+        $this->db->delete('commission_line_items', 'commission_id = ?', [$id]);
+        $this->db->delete('commission_payments', 'id = ?', [$id]);
+
+        $_SESSION['flash_success'] = 'Commission deleted.';
+        return $response->withHeader('Location', '/commissions')->withStatus(302);
+    }
+
+    /**
      * Add a manual adjustment line item to a commission.
      */
     public function addLineItem(Request $request, Response $response, array $args): Response
